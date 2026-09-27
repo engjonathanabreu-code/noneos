@@ -4,3 +4,4 @@
 .org-reports{position:relative;margin-bottom:20px}.org-reports-close{position:absolute;top:14px;right:14px;z-index:1}
 .org-reports .reports-panel .section-header{padding-right:44px}
 .org-card{display:flex;flex-direction:column}.org-card .card-actions{margin-top:auto}.org-card details{margin:var(--s-3) 0 var(--s-4)}
+.org-card-top img{width:auto;height:48px;max-width:180px;object-fit:contain;border-radius:0}

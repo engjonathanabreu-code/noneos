@@ -79,3 +79,7 @@ export function companyColor(org?:{id:string;color?:string}){
   if(org.color && paletteHexes.includes(org.color)) return org.color;
   return defaults[org.id] ?? paletteHexes[[...org.id].reduce((n,c)=>n+c.charCodeAt(0),0) % paletteHexes.length];
 }
+
+// Built-in vector logos (public/logos). A logo uploaded in the organization form takes precedence.
+const builtInLogos:Record<string,string> = {ct:'/logos/ct-diego-silva.svg'};
+export function organizationLogo(o:{id:string;logo?:string}){return o.logo || builtInLogos[o.id] || '';}

@@ -112,3 +112,7 @@
 .stat-card,.mini-companies button,.company-card{cursor:pointer;transition:border-color .15s,box-shadow .15s}
 .stat-card:hover,.mini-companies button:hover,.company-card:hover{border-color:color-mix(in srgb,var(--green) 35%,var(--line))}
 .stat-card:focus-visible,.mini-companies button:focus-visible,.company-card:focus-visible,.pulse-card button:focus-visible{outline:none;box-shadow:var(--focus)}
+
+/* Company logo in place of the initials mark (wide logos keep proportion) */
+.company-logo{height:44px;width:auto;max-width:150px;object-fit:contain;flex-shrink:0}
+.company-logo.small{height:28px;max-width:96px}
