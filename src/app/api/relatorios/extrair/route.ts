@@ -28,7 +28,12 @@ export async function POST(req:NextRequest){
   }catch(e){
     if(e instanceof Anthropic.RateLimitError) return NextResponse.json({error:'A IA está ocupada. Tente em instantes.'},{status:429});
     if(e instanceof Anthropic.AuthenticationError) return NextResponse.json({error:'Chave da IA inválida no servidor.'},{status:502});
-    if(e instanceof Anthropic.BadRequestError) return NextResponse.json({error:'A IA não conseguiu ler este arquivo. Tente exportar em PDF ou Excel.'},{status:422});
+    if(e instanceof Anthropic.BadRequestError){
+      // The API message describes the request problem (never the report contents).
+      console.error('[relatorios] extract 400:', e.message.slice(0,500));
+      if(/credit balance/i.test(e.message)) return NextResponse.json({error:'A conta da IA está sem créditos. Adicione créditos em console.anthropic.com → Billing.'},{status:402});
+      return NextResponse.json({error:'A IA não conseguiu ler este arquivo. Tente exportar em PDF ou Excel.'},{status:422});
+    }
     console.error('[relatorios] extract failed:', e instanceof Anthropic.APIError ? e.status : (e as Error).message);
     return NextResponse.json({error:'Não foi possível analisar o relatório agora.'},{status:502});
   }
