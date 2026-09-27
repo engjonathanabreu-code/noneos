@@ -41,11 +41,14 @@ async function read(fonte:string,env:string):Promise<SourceResult>{
 
 // ERP Integral agenda: public events, goal deadlines, process SLAs and Radar deadlines.
 export type ErpAgendaItem = {id:string;tipo:'evento'|'meta'|'processo'|'radar';titulo:string;inicio:string;fim:string;dia_todo:boolean;agenda:string|null};
+const erpOwnerEmail = () => process.env.NONE_ERP_EMAIL || 'eng.jonathanabreu@gmail.com';
 export async function erpAgenda(from:string,to:string):Promise<ErpAgendaItem[]|null>{
   const url = process.env.NONE_DB_INTEGRAL_ERP;
   if(!url) return null;
   try{
-    const [row] = await client(url)`select none_os.agenda(${from}::timestamptz, ${to}::timestamptz) as r`;
+    // Only what belongs to the partner: events they created or were invited to (not declined),
+    // goals they created and processes they are responsible for (matched by the ERP profile e-mail).
+    const [row] = await client(url)`select none_os.agenda(${from}::timestamptz, ${to}::timestamptz, ${erpOwnerEmail()}) as r`;
     return row.r as ErpAgendaItem[];
   }catch(e){
     console.error(`[erp-agenda] failed: ${errorCode(e)}`);

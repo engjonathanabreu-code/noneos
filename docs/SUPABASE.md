@@ -42,3 +42,6 @@ Organizações, logos, decisões, BrainStorm, checklists e agentes deixam de exi
 - Rota `/api/estado` (sessão obrigatória; PUT exige mesma origem, até 4 MB por documento).
 - No navegador, `src/components/workspace-sync.tsx` baixa as versões novas antes de abrir o cockpit, envia as alterações locais (1,2 s após salvar), verifica de novo ao voltar à aba e a cada 2 minutos. Se o mesmo dado mudou em dois dispositivos, a versão do servidor vence e a cópia local é guardada em `none-sync-conflito-*`, incluída na exportação em Conexões.
 - Sem `NONE_DB_APP`, o workspace continua funcionando só no navegador, e a barra do topo mostra "Salvo neste navegador".
+
+## Agenda do ERP da Integral: somente do sócio (set/2026)
+`none_os.agenda(de, ate, email)` devolve só os eventos que a pessoa criou ou para os quais foi convidada (exceto os recusados), as metas que criou e os processos em que é responsável. Radar e itens de outras pessoas ficam de fora. O e-mail vem de `NONE_ERP_EMAIL` (padrão: o do sócio).

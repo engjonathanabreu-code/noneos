@@ -45,7 +45,7 @@ export async function POST(req:NextRequest){
     cadastro_das_empresas: orgContext,
     indicadores_dos_sistemas: live.map(l=>({empresa:l.id, fontes:l.fontes.map(f=>f.status==='ok' ? {fonte:f.fonte, atualizado_em:f.gerado_em, indicadores:f.indicadores} : {fonte:f.fonte, indisponivel:f.mensagem})})),
     relatorios_importados: reports.filter(r=>r.relatorios.length).map(r=>({empresa:r.id, relatorios:r.relatorios.slice(0,8).map(x=>({relatorio:x.relatorio, periodo:[x.periodo_inicio,x.periodo_fim], importado_em:x.importedAt, indicadores:x.indicadores}))})),
-    agenda_erp_integral_14_dias: agenda ? agenda.map(a=>({titulo:a.titulo, inicio:a.inicio, tipo:a.tipo, agenda:a.agenda})) : undefined
+    minha_agenda_erp_integral_14_dias: agenda ? agenda.map(a=>({titulo:a.titulo, inicio:a.inicio, tipo:a.tipo, agenda:a.agenda})) : undefined
   };
 
   const client = claude();
