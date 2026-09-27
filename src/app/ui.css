@@ -164,3 +164,43 @@
 .event-done p{display:block}
 .event-done .decision-actions a{display:inline-flex;align-items:center;gap:6px;text-decoration:none}
 @media(max-width:700px){.event-row{grid-template-columns:1fr 1fr}}
+
+/* Phone as an app (Safari / Home Screen): safe areas, screen-sized panels, dialogs that fit. */
+@media(max-width:700px){
+  .topbar{height:calc(62px + env(safe-area-inset-top,0px));padding-top:env(safe-area-inset-top,0px);padding-left:max(19px,env(safe-area-inset-left,0px));padding-right:max(19px,env(safe-area-inset-right,0px));position:sticky;top:0;z-index:15;background:var(--paper)}
+  .sidebar nav{padding-left:max(7px,env(safe-area-inset-left,0px));padding-right:max(7px,env(safe-area-inset-right,0px))}
+  .nav-item>span[data-short]{font-size:0!important}
+  .nav-item>span[data-short]:after{content:attr(data-short);font-size:.625rem}
+  .nav-item:last-child span:after{content:attr(data-short)}
+  .sidebar nav .nav-item{padding-left:0!important;padding-right:0!important;min-width:0}
+  .nav-item>span,.nav-item>span[data-short]:after{letter-spacing:-.2px;white-space:nowrap}
+  .chat-heading>div>p:not(.eyebrow){display:none}
+  .chat-heading h1{margin-bottom:0}
+  .chat-messages{height:calc(100dvh - 430px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));min-height:230px}
+  .chat-disclaimer{margin-bottom:12px}
+  .modal{width:calc(100vw - 20px);max-width:none;max-height:calc(100dvh - 24px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px));padding:20px 16px;overflow-y:auto;overscroll-behavior:contain;border-radius:16px}
+  .modal>h2{font-size:1.3rem;line-height:1.35}
+  .modal .decision-actions{flex-wrap:wrap}
+  .modal .decision-actions>*{flex:1 1 auto}
+  .bs-workspace,.bs-workspace.bs-chat-hidden{height:calc(100dvh - 220px - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px))}
+  .toast{left:10px;right:10px;width:auto;max-width:none}
+  .decision-row{grid-template-columns:auto minmax(0,1fr) auto}
+  .decision-row .row-arrow{display:none}
+  .decision-copy h3,.decision-copy p{overflow-wrap:anywhere}
+  .page-heading{flex-wrap:wrap;gap:12px}
+  .page-heading>div{min-width:0}
+  .page-heading h1{overflow-wrap:anywhere}
+  .agenda-card .section-header{flex-wrap:wrap}
+}
+@media(max-width:700px) and (display-mode:standalone){.demo-notice{margin-top:4px}}
+.decision-field input:not([type=checkbox]),.decision-field select{min-height:44px;padding:9px 12px;border:1px solid #dfe6e2;border-radius:9px;background:#fff;min-width:0;max-width:100%}
+.decision-field input[type=date],.decision-field input[type=time]{-webkit-appearance:none;appearance:none;display:block}
+.check-list-heading .text-button{white-space:nowrap;flex-shrink:0}
+@media(max-width:700px){
+  .sidebar nav .nav-item{position:relative}
+  .sidebar nav .nav-item>b{display:grid!important;place-items:center;position:absolute;top:6px;left:calc(50% + 6px);min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:#f3c969;color:#1d2a22;font-size:9px;font-weight:700;line-height:1}
+}
+@media(max-width:700px){
+  .tabs,.agent-view-nav{flex-wrap:wrap;overflow:visible;row-gap:6px}
+  .tabs button,.agent-view-nav button{flex:0 0 auto}
+}
