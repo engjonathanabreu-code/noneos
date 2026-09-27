@@ -33,7 +33,9 @@ Regras:
 type Input = {company:string; fileName:string} & ({kind:'pdf'; base64:string} | {kind:'text'; text:string});
 
 export async function extractReport(input:Input):Promise<ReportExtraction>{
-  const client = new Anthropic();
+  // Organization-level keys (not scoped to a workspace) must name the workspace on every call.
+  const workspace = process.env.ANTHROPIC_WORKSPACE_ID;
+  const client = new Anthropic(workspace ? {defaultHeaders:{'anthropic-workspace-id':workspace}} : {});
   const file:Anthropic.Beta.BetaContentBlockParam = input.kind==='pdf'
     ? {type:'document', source:{type:'base64', media_type:'application/pdf', data:input.base64}, title:input.fileName}
     : {type:'document', source:{type:'text', media_type:'text/plain', data:input.text}, title:input.fileName};
@@ -50,7 +52,7 @@ export async function extractReport(input:Input):Promise<ReportExtraction>{
     response = await client.beta.messages.parse({...request, betas:['server-side-fallback-2026-07-01'], fallbacks:'default'});
   }catch(e){
     // Accounts without the fallback beta get a 400; retry once without it.
-    if(!(e instanceof Anthropic.BadRequestError) || /credit balance/i.test(e.message)) throw e;
+    if(!(e instanceof Anthropic.BadRequestError) || /credit balance|not scoped to a workspace/i.test(e.message)) throw e;
     console.error('[relatorios] fallback request rejected, retrying without it:', e.message.slice(0,300));
     response = await client.beta.messages.parse(request);
   }

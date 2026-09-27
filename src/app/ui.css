@@ -1,0 +1,54 @@
+/* none OS · UI foundation. Rules and rationale: docs/UI-STYLE-GUIDE.md
+   Loaded last in layout.tsx so it normalizes the older per-screen styles. */
+
+:root{
+  /* Color — brand and neutrals (existing values, now named) */
+  --green:#08785d;--green-strong:#065f4a;--green-soft:#edf6ef;--green-tint:#f7faf7;
+  --ink:#192b28;--ink-2:#334c3d;--muted:#6d7c77;--subtle:#9ba59c;
+  --line:#e7ece9;--line-strong:#dce5df;--surface:#fff;--paper:#f7f9f8;
+  /* Status */
+  --ok:#16a34a;--warn:#b45309;--danger:#b42318;--info:#2563eb;
+  /* Spacing — 4px base */
+  --s-1:4px;--s-2:8px;--s-3:12px;--s-4:16px;--s-5:20px;--s-6:24px;--s-8:32px;
+  /* Radius */
+  --r-control:8px;--r-card:13px;--r-pill:999px;
+  /* Type scale */
+  --t-xs:.6875rem;--t-sm:.75rem;--t-md:.8125rem;--t-base:.875rem;
+  /* Control heights */
+  --h-sm:32px;--h-md:40px;
+  --focus:0 0 0 3px color-mix(in srgb,var(--green) 28%,transparent);
+}
+
+/* Buttons — three variants, two sizes. Same height within a group, so weight
+   comes from variant, never from size. */
+.primary,.outline,.btn-secondary,.btn-ghost{
+  display:inline-flex;align-items:center;justify-content:center;gap:var(--s-2);
+  min-height:var(--h-md);padding:0 var(--s-4);border-radius:var(--r-control);
+  font-size:var(--t-md);font-weight:600;line-height:1;white-space:nowrap;
+  text-decoration:none;cursor:pointer;transition:background .15s,border-color .15s,color .15s;
+}
+.primary{background:var(--green);border:1px solid var(--green);color:#fff}
+.primary:hover:not(:disabled){background:var(--green-strong);border-color:var(--green-strong)}
+.outline,.btn-secondary{background:var(--surface);border:1px solid var(--line-strong);color:var(--ink)}
+.outline:hover:not(:disabled),.btn-secondary:hover:not(:disabled){border-color:var(--green);color:var(--green)}
+.btn-ghost{background:transparent;border:1px solid transparent;color:var(--green)}
+.btn-ghost:hover:not(:disabled){background:var(--green-soft)}
+.btn-sm{min-height:var(--h-sm);padding:0 var(--s-3);font-size:var(--t-sm);gap:6px}
+.btn-sm svg{width:14px;height:14px}
+
+/* Inline text action (links inside copy, "Tentar novamente", "Detalhes") */
+.text-button{font-size:var(--t-sm);color:var(--green);font-weight:550;cursor:pointer}
+.text-button:hover:not(:disabled){text-decoration:underline;text-underline-offset:3px}
+
+.primary:focus-visible,.outline:focus-visible,.btn-secondary:focus-visible,.btn-ghost:focus-visible,.text-button:focus-visible,.icon-button:focus-visible{outline:none;box-shadow:var(--focus)}
+.icon-button{color:var(--muted)}
+.icon-button:hover:not(:disabled){background:var(--green-soft);color:var(--green)}
+
+/* Action rows: one line, consistent spacing, wraps on narrow cards */
+.actions{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s-2)}
+.card-actions{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s-2);margin-top:var(--s-4);padding-top:var(--s-4);border-top:1px solid var(--line)}
+
+@media(max-width:700px){
+  .primary,.outline,.btn-secondary,.btn-ghost{min-height:44px} /* touch target */
+  .btn-sm{min-height:var(--h-sm)}
+}

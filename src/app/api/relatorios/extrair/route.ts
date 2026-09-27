@@ -31,6 +31,7 @@ export async function POST(req:NextRequest){
     if(e instanceof Anthropic.BadRequestError){
       // The API message describes the request problem (never the report contents).
       console.error('[relatorios] extract 400:', e.message.slice(0,500));
+      if(/not scoped to a workspace/i.test(e.message)) return NextResponse.json({error:'A chave da IA não está vinculada a um workspace. Crie a chave dentro de um workspace no console da Anthropic ou configure ANTHROPIC_WORKSPACE_ID na Vercel.'},{status:502});
       if(/credit balance/i.test(e.message)) return NextResponse.json({error:'A conta da IA está sem créditos. Adicione créditos em console.anthropic.com → Billing.'},{status:402});
       return NextResponse.json({error:'A IA não conseguiu ler este arquivo. Tente exportar em PDF ou Excel.'},{status:422});
     }
