@@ -65,6 +65,31 @@ Tamanhos: padrão 40px (`--h-md`); `.btn-sm` 32px para ações dentro de cartõe
 - O rodapé tem no máximo **uma** ação secundária e **uma** ghost. Edição fica como `.icon-button` no canto.
 - Exemplo (cartão de organização): `Ver áreas da operação` (secundário) + `Enviar relatório` (ghost). Organizações sem áreas usam `Enviar relatório` como secundário.
 
+## Abas e filtros
+Só dois padrões:
+
+| Padrão | Uso | Classes |
+|---|---|---|
+| **Abas** (sublinhado) | Trocar a área de conteúdo dentro de uma página (Visão geral / Financeiro / Clientes…; abas do agente) | `.tabs`, `.agent-view-nav` |
+| **Segmentado** | Trocar a visualização do mesmo conteúdo (Checklist / Calendário; Semana / Mês) | `.check-view-tabs`, `.check-period-tabs` |
+| **Chips de filtro** | Filtrar uma lista (Pendentes / Aprovadas / Todas) | `.filter-row` |
+
+- Aba selecionada: texto `--green` + sublinhado 2px `--green`.
+- Segmento selecionado: fundo `--surface` elevado sobre trilho `--track`; texto `--ink`. **Nunca** verde sólido (isso é ação primária, não estado).
+- Chip selecionado: fundo `--green-soft`, texto `--green-strong`.
+- Estado sempre exposto: `aria-selected` (abas) ou `aria-pressed` (segmentos/chips).
+
+## Ícones e seleção
+- Botão só de ícone (editar, arquivar, fixar, formatar): cor `--muted`; hover e ativo com fundo `--green-soft` e ícone `--green`. Vale para `.icon-button`, `.bs-icon`, `.org-edit` e a barra de formatação.
+- Item selecionado em lista (nota, pasta, rascunho): fundo `--green-soft`, texto `--ink`.
+- Biblioteca de ícones: lucide-react. Ícones do checklist: `checklistIcons` em `src/lib/brand.ts`.
+
+## Status
+`--ok` (conectado), `--warn` (atenção, alterações não salvas, lixeira), `--danger` (erro, ação destrutiva), `--info` (Google Agenda). Fundo de aviso: a cor do status a 12% sobre branco. Não use âmbar/dourado como decoração.
+
+## Exceção: BrainStorm
+A área de notas mantém a superfície de "papel" quente (tons off-white) para diferenciar escrita livre. Os **acentos** (ícones, seleção, foco, botões, checkbox) seguem a marca como no resto do app.
+
 ## Indicadores
 - Cartão `.panel.metric`: rótulo (12px, muted) → valor (grande, 650) → nota (fonte, período, contexto).
 - Sempre dizer a origem: "Fonte: ERP INTEGRAL Interno · atualizado 27/09 14:30 · somente leitura" ou "Receita, 01/09/2026 a 26/09/2026".
