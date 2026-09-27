@@ -1,0 +1,160 @@
+// none auditoria: investment due-diligence checklist for small factories and bakeries.
+// Questions, rules and the backup format are the same as the original app, so its exports import as-is.
+// Shared by the client (screens) and the server (summaries for the agents).
+
+export type AuditAnswer = {value?:string;note?:string;evidence?:string;reason?:string;verified?:boolean;ink?:string};
+export type Audit = {id:string;companyId:string;createdAt:string;updatedAt:string;meta:Record<string,string>;answers:Record<string,AuditAnswer>;finance:Record<string,string>;decision:Record<string,string>};
+export type AuditSection = {id:string;name:string;desc:string;qs:{q:string;critical:boolean;hint:string}[]};
+
+export const auditSections:AuditSection[] = [
+ {id:"legal",name:"Empresa & licenças",desc:"Documentos, sócios e regularidade",qs:[
+  {q:"CNPJ e atividade cadastrada conferem com a operação?",critical:true,hint:"Confira situação cadastral e CNAEs."},
+  {q:"Contrato social e quadro de sócios estão atualizados?",critical:true,hint:"Peça contrato e últimas alterações."},
+  {q:"Alvará municipal está válido ou há dispensa comprovada?",critical:true,hint:"Confirme endereço, atividade e regra local."},
+  {q:"Licença sanitária está válida ou há dispensa comprovada?",critical:true,hint:"Confira o enquadramento com a vigilância sanitária local."},
+  {q:"A regularidade junto aos bombeiros está comprovada?",critical:true,hint:"Confira o documento exigível no estado e sua validade."},
+  {q:"A regularidade ambiental ou dispensa está documentada?",critical:false,hint:"Verifique atividade, porte e regras do órgão competente."},
+  {q:"O imóvel pode ser usado pela empresa após o investimento?",critical:true,hint:"Confira propriedade, locação, prazo e autorização de transferência."},
+  {q:"Processos, multas e passivos foram levantados?",critical:true,hint:"Solicite certidões e relação de contingências com advogado e contador."}
+ ]},
+ {id:"food",name:"Segurança dos alimentos",desc:"Higiene, conservação e qualidade",qs:[
+  {q:"Há Manual de Boas Práticas aplicado na rotina?",critical:true,hint:"Observe a prática e peça o manual."},
+  {q:"Limpeza e procedimentos de higiene têm registros?",critical:false,hint:"Confira responsáveis e controles."},
+  {q:"A potabilidade da água está comprovada?",critical:true,hint:"Confira origem, controles e limpeza do reservatório."},
+  {q:"O controle de pragas está documentado e eficaz?",critical:true,hint:"Observe indícios e confira os registros."},
+  {q:"Temperaturas de conservação são monitoradas?",critical:true,hint:"Observe câmaras, geladeiras e transporte."},
+  {q:"Há prevenção de contaminação cruzada?",critical:true,hint:"Observe fluxo entre ingredientes crus e produtos prontos."},
+  {q:"Validades e lotes permitem rastrear os produtos?",critical:true,hint:"Teste um produto até o fornecedor e a data de produção."},
+  {q:"Os funcionários receberam capacitação em higiene?",critical:false,hint:"Confira registros e práticas observadas."},
+  {q:"Rotulagem e informação de alergênicos foram revisadas?",critical:true,hint:"Verifique as exigências conforme produto e forma de venda."},
+  {q:"Há procedimento para retirar produtos inseguros?",critical:true,hint:"Confira contato dos clientes e registros de ocorrências."}
+ ]},
+ {id:"team",name:"Equipe & trabalho",desc:"Vínculos, segurança e dependências",qs:[
+  {q:"Os vínculos de todos os trabalhadores estão regularizados?",critical:true,hint:"Confira empregados, terceiros e prestadores com o contador."},
+  {q:"Salários, férias e encargos estão em dia?",critical:true,hint:"Peça comprovantes, folha e provisões."},
+  {q:"CNDT e regularidade do FGTS foram verificadas?",critical:true,hint:"Certidões não substituem a revisão completa de passivos."},
+  {q:"Jornadas e horas extras estão registradas corretamente?",critical:false,hint:"Confronte escalas e controles de ponto."},
+  {q:"Riscos ocupacionais e saúde da equipe estão avaliados?",critical:true,hint:"Confira PGR, PCMSO e ASOs, ou dispensas aplicáveis."},
+  {q:"Máquinas têm proteções e uso seguro?",critical:true,hint:"Observe misturadores, fornos e equipamentos de corte."},
+  {q:"Há treinamento e proteção adequados às tarefas?",critical:false,hint:"Confira calor, cortes, limpeza e levantamento de cargas."},
+  {q:"A operação funciona sem a presença diária do dono?",critical:false,hint:"Identifique quem domina receitas, compras e produção."}
+ ]},
+ {id:"operation",name:"Produção & estrutura",desc:"Capacidade, estoque e fornecedores",qs:[
+  {q:"Receitas e custos por produto estão padronizados?",critical:false,hint:"Peça fichas técnicas e rendimento."},
+  {q:"Equipamentos são próprios ou têm contratos claros?",critical:false,hint:"Confira inventário, notas fiscais e financiamentos."},
+  {q:"A manutenção está em dia e registrada?",critical:false,hint:"Identifique reparos e substituições necessárias."},
+  {q:"Estoque físico confere com o controle?",critical:false,hint:"Faça amostragem de ingredientes e produtos."},
+  {q:"Perdas e desperdícios são medidos?",critical:false,hint:"Confira devoluções, vencimentos e sobras."},
+  {q:"Há alternativas para fornecedores essenciais?",critical:false,hint:"Identifique dependência e prazos de compra."},
+  {q:"A capacidade de produção foi medida?",critical:false,hint:"Compare produção atual, turnos e gargalos."},
+  {q:"Resíduos e efluentes têm destinação adequada?",critical:false,hint:"Verifique limpeza, armazenamento e coleta."}
+ ]},
+ {id:"money",name:"Finanças & tributos",desc:"Caixa, dívidas e lucro real",qs:[
+  {q:"O faturamento dos últimos 12 meses foi comprovado?",critical:true,hint:"Concilie notas, extratos, cartões e vendas."},
+  {q:"Despesas e retiradas dos sócios estão separadas?",critical:true,hint:"Inclua remuneração de quem substituirá o dono."},
+  {q:"O lucro informado foi conciliado com os documentos?",critical:true,hint:"Confira DRE, extratos e ajustes com o contador."},
+  {q:"Todas as dívidas e garantias foram declaradas?",critical:true,hint:"Inclua fornecedores, tributos, bancos e empréstimos de sócios."},
+  {q:"A regularidade fiscal federal, estadual e municipal foi verificada?",critical:true,hint:"Confira certidões e eventuais parcelamentos."},
+  {q:"As vendas são documentadas fiscalmente?",critical:true,hint:"Compare notas com recebimentos e estoque."},
+  {q:"Contas a receber e a pagar foram conferidas?",critical:false,hint:"Avalie atrasos, inadimplência e vencimentos."},
+  {q:"O capital de giro necessário foi calculado?",critical:true,hint:"Considere estoque, prazo de clientes e fornecedores."}
+ ]},
+ {id:"deal",name:"Mercado & investimento",desc:"Clientes, preço e acordo de sócios",qs:[
+  {q:"A base de clientes e a recorrência foram comprovadas?",critical:false,hint:"Confira histórico de pedidos e concentração de receita."},
+  {q:"A receita resistiria à perda do maior cliente?",critical:false,hint:"Quantifique a participação dos principais compradores."},
+  {q:"Marca, receitas e ativos essenciais estão disponíveis no negócio?",critical:true,hint:"Confirme titularidade e direitos de uso."},
+  {q:"O preço pedido tem justificativa documentada?",critical:true,hint:"Compare resultados, ativos, dívidas e necessidade de caixa."},
+  {q:"O destino do aporte e a participação estão definidos?",critical:true,hint:"Separe compra de participação de dinheiro que entra na empresa."},
+  {q:"Poderes de decisão e prestação de contas estão definidos?",critical:true,hint:"Negocie acesso a números, limites e aprovação de gastos."},
+  {q:"Regras de saída e responsabilidade por passivos estão definidas?",critical:true,hint:"Formalize condições, garantias e tratamento de dívidas anteriores."},
+  {q:"O vendedor aceita validar os dados antes da assinatura?",critical:true,hint:"Preveja acesso a documentos e revisão contábil e jurídica."}
+ ]}
+];
+
+export const answerOptions = ['Sim','Não','Não sei','Não se aplica'] as const;
+export const operationTypes = ['Fabricação / indústria','Serviço de alimentação','Operação mista'];
+export const decisionChoices = ['Avançar para validação profissional','Avançar somente com condições','Renegociar preço e condições','Não avançar'];
+export const financeFields:[string,string][] = [['Receita média mensal (R$)','revenue'],['Custos variáveis mensais (R$)','variable'],['Despesas fixas mensais (R$)','fixed'],['Remuneração de gestão mensal (R$)','salary'],['Tributos mensais não incluídos acima (R$)','tax'],['Preço por 100% do negócio (R$)','price'],['Dívidas que serão assumidas (R$)','debt'],['Reformas e equipamentos iniciais (R$)','capex'],['Capital de giro adicional (R$)','working']];
+
+const isObj = (o:unknown):o is Record<string,unknown> => !!o && typeof o==='object' && !Array.isArray(o);
+
+// Same checks as the original app; unknown fields are dropped.
+export function cleanAuditData(v:unknown){
+  if(!isObj(v) || !isObj(v.meta) || !isObj(v.answers) || !isObj(v.finance) || !isObj(v.decision)) throw Error('invalid');
+  const clean = {meta:{} as Record<string,string>, answers:{} as Record<string,AuditAnswer>, finance:{} as Record<string,string>, decision:{} as Record<string,string>};
+  for(const g of ['meta','finance','decision'] as const) for(const [k,val] of Object.entries(v[g] as Record<string,unknown>)) if(typeof val==='string' && val.length<10000 && k.length<60) clean[g][k]=val;
+  for(const [k,a] of Object.entries(v.answers as Record<string,unknown>)){
+    if(!/^\w+-\d+$/.test(k) || !isObj(a)) continue;
+    const out:AuditAnswer = {};
+    for(const f of ['value','note','evidence','reason'] as const) if(typeof a[f]==='string') out[f]=(a[f] as string).slice(0,10000);
+    out.verified = a.verified===true;
+    if(typeof a.ink==='string' && /^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(a.ink) && a.ink.length<2000000) out.ink = a.ink;
+    clean.answers[k] = out;
+  }
+  return clean;
+}
+
+export function isAudit(v:unknown):v is Audit{
+  if(!isObj(v) || typeof v.id!=='string' || typeof v.companyId!=='string' || typeof v.createdAt!=='string' || typeof v.updatedAt!=='string') return false;
+  try{cleanAuditData(v);return true;}catch{return false;}
+}
+
+export const answered = (a:AuditAnswer) => ['Sim','Não','Não sei'].includes(a.value??'') || (a.value==='Não se aplica' && !!a.reason?.trim());
+
+export function auditItems(audit:Pick<Audit,'answers'>){
+  return auditSections.flatMap(s=>s.qs.map((q,i)=>({id:s.id+'-'+i, section:s, q, a:audit.answers[s.id+'-'+i] ?? {}})));
+}
+
+export function auditMetrics(audit:Pick<Audit,'answers'>){
+  const items = auditItems(audit);
+  const no = items.filter(x=>x.a.value==='Não');
+  const yes = items.filter(x=>x.a.value==='Sim');
+  return {
+    items, no, yes,
+    done: items.filter(x=>answered(x.a)).length,
+    critical: no.filter(x=>x.q.critical),
+    unknown: items.filter(x=>!answered(x.a) || x.a.value==='Não sei'),
+    verified: yes.filter(x=>x.a.verified && x.a.evidence?.trim())
+  };
+}
+
+// Triage rule of the original app; not an investment recommendation.
+export function auditStatus(audit:Pick<Audit,'answers'>){
+  const m = auditMetrics(audit);
+  return m.critical.length ? 'Resolver alertas críticos' : m.unknown.length || m.verified.length<m.yes.length ? 'Diligência ainda pendente' : m.no.length ? 'Negociar correções e condições' : 'Checklist favorável à próxima análise';
+}
+
+export function auditCalculations(finance:Record<string,string>){
+  const n:Record<string,number|null> = {};
+  for(const [,k] of financeFields){const v=finance[k]; n[k] = v!==undefined && v!=='' && Number.isFinite(Number(v)) && Number(v)>=0 ? Number(v) : null;}
+  const num = (k:string) => n[k] as number;
+  const operating = ['revenue','variable','fixed','salary','tax'].every(k=>n[k]!==null);
+  const investment = ['price','debt','capex','working'].every(k=>n[k]!==null);
+  const profit = operating ? num('revenue')-num('variable')-num('fixed')-num('salary')-num('tax') : null;
+  const total = investment ? num('price')+num('debt')+num('capex')+num('working') : null;
+  return {
+    profit, total,
+    margin: profit!==null && num('revenue')>0 ? profit/num('revenue')*100 : null,
+    payback: profit!==null && profit>0 && total!==null && total>0 ? total/profit : null,
+    stress: operating ? num('revenue')*.8-num('variable')*.8-num('fixed')-num('salary')-num('tax') : null
+  };
+}
+
+// Compact view for the AI: findings, numbers and the partner's decision (no handwritten images).
+export function auditSummary(a:Audit, companyName?:string){
+  const m = auditMetrics(a), c = auditCalculations(a.finance);
+  const line = (x:ReturnType<typeof auditItems>[number]) => ({area:x.section.name, pergunta:x.q.q, critico:x.q.critical||undefined, resposta:x.a.value??'Não respondido', nota:x.a.note||undefined, evidencia:x.a.evidence||undefined, justificativa:x.a.reason||undefined});
+  return {
+    tipo:'Auditoria de investimento (checklist de campo)',
+    empresa:companyName ?? a.companyId, empresa_avaliada:a.meta.company||undefined, municipio:a.meta.city||undefined, data_da_visita:a.meta.date||undefined,
+    auditor:a.meta.auditor||undefined, entrevistado:a.meta.contact||undefined, tipo_de_operacao:a.meta.type||undefined, atualizada_em:a.updatedAt,
+    progresso:`${m.done} de ${m.items.length} itens respondidos`, sinalizacao:auditStatus(a),
+    alertas_criticos:m.critical.map(line), outras_respostas_nao:m.no.filter(x=>!x.q.critical).map(line),
+    itens_sem_conclusao:m.unknown.length, sim_sem_evidencia_conferida:m.yes.length-m.verified.length,
+    notas_relevantes:m.items.filter(x=>x.a.value!=='Não' && (x.a.note || x.a.value==='Não sei')).map(line).slice(0,40),
+    por_area:auditSections.map(s=>{const it=m.items.filter(x=>x.section.id===s.id);return {area:s.name, respondidas:`${it.filter(x=>answered(x.a)).length}/${it.length}`, alertas:it.filter(x=>x.a.value==='Não').length};}),
+    numeros_informados:Object.fromEntries(financeFields.filter(([,k])=>a.finance[k]!==undefined && a.finance[k]!=='').map(([l,k])=>[l,Number(a.finance[k])])),
+    calculos:{resultado_mensal:c.profit, capital_total:c.total, margem_percentual:c.margin===null?null:Number(c.margin.toFixed(1)), retorno_simples_meses:c.payback===null?null:Number(c.payback.toFixed(1)), resultado_com_20pct_menos_receita:c.stress},
+    decisao_do_socio:{encaminhamento:a.decision.choice||'Ainda em análise', condicoes:a.decision.conditions||undefined}
+  };
+}

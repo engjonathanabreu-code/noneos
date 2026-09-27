@@ -45,3 +45,6 @@ Organizações, logos, decisões, BrainStorm, checklists e agentes deixam de exi
 
 ## Agenda do ERP da Integral: somente do sócio (set/2026)
 `none_os.agenda(de, ate, email)` devolve só os eventos que a pessoa criou ou para os quais foi convidada (exceto os recusados), as metas que criou e os processos em que é responsável. Radar e itens de outras pessoas ficam de fora. O e-mail vem de `NONE_ERP_EMAIL` (padrão: o do sócio).
+
+## Auditoria de investimento (set/2026)
+O none auditoria (antes um app separado, none-auditoria-confeitaria) virou a aba Auditoria. Cada auditoria fica em `auditoria:<id>` em `none_os.documentos_estado`, ligada a uma empresa. Backups exportados pelo app antigo são importados sem mudança de formato. `companyAudits()` (src/lib/state-db.ts) resume as auditorias (sem as anotações à mão) para os agentes Executivo e Financeiro, a análise de Decisões e Perguntar à none.

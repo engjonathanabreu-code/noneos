@@ -1,11 +1,12 @@
 import 'server-only';
 import {client, errorCode} from './db';
 import {orgPattern, reportsConfigured} from './reports-db';
+import {auditSummary, isAudit} from './audit';
 
-// Workspace documents (organizations, logos, BrainStorm, checklists, agents, decisions) kept in
+// Workspace documents (organizations, logos, BrainStorm, checklists, agents, decisions, audits) kept in
 // none_os.documentos_estado so every device sees the same data. Each save carries the version
 // it was based on; the database refuses stale writes and archives the previous version.
-export const stateKeyPattern = /^(organizacoes|brainstorm|checklists|agentes|decisoes|logo:(integral|mcl|reurb|ct|bergamota|vidas|org-[a-f0-9-]{36}))$/;
+export const stateKeyPattern = /^(organizacoes|brainstorm|checklists|agentes|decisoes|logo:(integral|mcl|reurb|ct|bergamota|vidas|org-[a-f0-9-]{36})|auditoria:[a-f0-9-]{36})$/;
 export const stateConfigured = reportsConfigured;
 export class VersionConflict extends Error {}
 
@@ -32,3 +33,20 @@ export async function saveState(key:string, data:unknown, baseVersion:number):Pr
 }
 
 export {errorCode, orgPattern};
+
+// Investment audits linked to a company ('all' = every audit), summarized for the AI.
+// Failures are swallowed: the AI simply works without them.
+export async function companyAudits(org:string, companyName?:(id:string)=>string|undefined){
+  if(!stateConfigured()) return [];
+  try{
+    const keys = Object.keys(await stateVersions()).filter(k=>k.startsWith('auditoria:'));
+    if(!keys.length) return [];
+    const docs = await readState(keys);
+    return docs.map(d=>d.dados).filter(isAudit).filter(a=>org==='all' || a.companyId===org)
+      .sort((a,b)=>b.updatedAt.localeCompare(a.updatedAt)).slice(0,5)
+      .map(a=>auditSummary(a, companyName?.(a.companyId)));
+  }catch(e){
+    console.error(`[estado] audits failed: ${errorCode(e)}`);
+    return [];
+  }
+}

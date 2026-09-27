@@ -13,12 +13,16 @@ export const syncLabel:Record<SyncState,string> = {loading:'Sincronizando…',sy
 
 const simpleKeys:Record<string,string> = {brainstorm:'none-brainstorm-v1',checklists:'none-checklists-v1',agentes:'none-agents-v1',decisoes:'none-decisions-v1'};
 const orgKey = 'none-organizations-v1';
-const managed = new Set([orgKey,...Object.values(simpleKeys)]);
+const auditKey = 'none-auditorias-v1';
+const managed = new Set([orgKey,auditKey,...Object.values(simpleKeys)]);
+const localKeyOf = (chave:string) => chave in simpleKeys ? simpleKeys[chave] : chave.startsWith('auditoria:') ? auditKey : orgKey;
 const metaKey = 'none-sync-v1';
 export const conflictPrefix = 'none-sync-conflito-';
+const warnedTooLarge = new Set<string>();
 
 type Meta = Record<string,{v:number;h:string}>;
 type OrgItem = Record<string,unknown>&{id:string;logo?:string};
+type AuditItem = Record<string,unknown>&{id:string;updatedAt?:string};
 
 function canonical(v:unknown):string{
   if(Array.isArray(v)) return '['+v.map(canonical).join(',')+']';
@@ -41,12 +45,26 @@ function localDocs():Map<string,unknown>{
     // A removed logo is sent as empty once it had been synced, so other devices drop it too.
     for(const o of orgs.items) if(typeof o?.id==='string'&&(o.logo||meta['logo:'+o.id])) docs.set('logo:'+o.id,{logo:o.logo??''});
   }
+  // Audits: one document each (handwritten notes make them large). A deleted audit that had been
+  // synced is sent once as a tombstone so other devices remove it too.
+  const audits = parse(localStorage.getItem(auditKey)) as {items?:AuditItem[]}|undefined;
+  const ids = new Set<string>();
+  if(audits&&Array.isArray(audits.items)) for(const a of audits.items) if(typeof a?.id==='string'&&/^[a-f0-9-]{36}$/.test(a.id)){ids.add(a.id);docs.set('auditoria:'+a.id,a);}
+  for(const k of Object.keys(readMeta())) if(k.startsWith('auditoria:')&&!ids.has(k.slice(10))) docs.set(k,{id:k.slice(10),removida:true});
   return docs;
 }
 
 // Server documents → local storage (only what changed).
 function writeDocs(docs:Map<string,unknown>){
   for(const [chave,key] of Object.entries(simpleKeys)) if(docs.has(chave)) localStorage.setItem(key,JSON.stringify(docs.get(chave)));
+  const auditDocs=[...docs.entries()].filter(([k])=>k.startsWith('auditoria:'));
+  if(auditDocs.length){
+    const current = (parse(localStorage.getItem(auditKey)) as {items?:AuditItem[]}|undefined)?.items ?? [];
+    const byId = new Map(current.filter(a=>typeof a?.id==='string').map(a=>[a.id,a]));
+    for(const [k,d] of auditDocs){const id=k.slice(10);if((d as {removida?:boolean}).removida)byId.delete(id);else byId.set(id,d as AuditItem);}
+    const items=[...byId.values()].sort((a,b)=>String(b.updatedAt??'').localeCompare(String(a.updatedAt??'')));
+    localStorage.setItem(auditKey,JSON.stringify({version:1,items}));
+  }
   const touchesOrgs=[...docs.keys()].some(k=>k==='organizacoes'||k.startsWith('logo:'));
   if(!touchesOrgs) return;
   const current = parse(localStorage.getItem(orgKey)) as {version?:number;items?:OrgItem[]}|undefined;
@@ -91,8 +109,9 @@ export function WorkspaceSync({children}:{children:React.ReactNode}){
     }
     let pulledChanges = false;
     const backups = new Set<string>();
+    const tooLarge:string[] = [];
     const backup = (chave:string)=>{
-      const key = chave in simpleKeys ? simpleKeys[chave] : orgKey;
+      const key = localKeyOf(chave);
       if(backups.has(key)) return;
       const raw = localStorage.getItem(key); if(raw===null) return;
       backups.add(key);
@@ -114,6 +133,9 @@ export function WorkspaceSync({children}:{children:React.ReactNode}){
         }
         next[d.chave] = {v:d.versao,h};
       }
+      // Asked for but not on the server (removed there): forget the old version so it is saved again.
+      const found = new Set((r.body.documentos ?? []).map(d=>d.chave));
+      for(const k of keys) if(!found.has(k)) delete next[k];
       if(incoming.size){applying.current=true;try{writeDocs(incoming);}finally{applying.current=false;}pulledChanges=true;}
       localStorage.setItem(metaKey,JSON.stringify(next));
     };
@@ -123,11 +145,14 @@ export function WorkspaceSync({children}:{children:React.ReactNode}){
       const base = readMeta()[chave]?.v ?? server[chave] ?? 0;
       setState('saving');
       const r = await api<{versao?:number;conflito?:boolean}>('/api/estado',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({chave,dados:l,versao_base:base})});
-      if(r.status===409&&r.body.conflito){backup(chave);await pull([chave]);continue;}
+      if(r.status===409&&r.body.conflito){await pull([chave]);if(!readMeta()[chave])again.current=true;continue;}
+      // Too large to sync (e.g. many handwritten notes): keep it in this browser and say so.
+      if(r.status===413){tooLarge.push(chave);continue;}
       if(r.status!==200||typeof r.body.versao!=='number') throw Error('save '+r.status);
       const next = readMeta(); next[chave] = {v:r.body.versao,h:hash(l)}; localStorage.setItem(metaKey,JSON.stringify(next));
     }
     setState('synced'); setAt(new Date().toISOString());
+    if(tooLarge.some(k=>!warnedTooLarge.has(k))){tooLarge.forEach(k=>warnedTooLarge.add(k));setNotice('Uma auditoria ficou grande demais para sincronizar (anotações à mão). Ela continua salva neste navegador; exporte uma cópia em Conexões.');}
     if(backups.size) setNotice('Havia alterações diferentes neste navegador e em outro dispositivo. A versão do servidor foi aplicada e a cópia deste navegador foi guardada (Conexões → Exportar cópia).');
     if(pulledChanges&&!initial){window.dispatchEvent(new Event('none-organizations'));setGeneration(g=>g+1);if(!backups.size)setNotice('Atualizado com alterações feitas em outro dispositivo.');}
   },[]);

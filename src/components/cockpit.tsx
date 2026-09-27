@@ -1,7 +1,7 @@
 'use client';
 
 import {useEffect,useRef,useState} from 'react';
-import {ArrowDownLeft,ArrowRight,ArrowUpRight,Building2,CalendarCheck,Check,CheckCheck,ChevronRight,FileText,Home,Layers3,LockKeyhole,LogOut,PanelLeftClose,PanelLeftOpen,Plug,ShieldCheck,Sparkles,X} from 'lucide-react';
+import {ArrowDownLeft,ArrowRight,ArrowUpRight,Building2,CalendarCheck,ClipboardCheck,Check,CheckCheck,ChevronRight,FileText,Home,Layers3,LockKeyhole,LogOut,PanelLeftClose,PanelLeftOpen,Plug,ShieldCheck,Sparkles,X} from 'lucide-react';
 import type {LucideIcon} from 'lucide-react';
 import {WhatsAppPreparation} from '@/components/whatsapp-preparation';
 import {OrganizationPortfolio} from '@/components/organization-portfolio';
@@ -16,12 +16,13 @@ import {organizationLogo,companyColor} from '@/lib/brand';
 import {ConnectionsStatus} from '@/components/connections-status';
 import {AgentHub} from '@/components/agent-hub';
 import {Decisions,usePendingDecisions} from '@/components/decisions';
+import {Audits} from '@/components/audits';
 import {useWorkspaceSync,syncLabel} from '@/components/workspace-sync';
 import {useAiStatus,aiStateLabel} from '@/lib/ai-status';
 
-type View='hoje'|'rotina'|'empresas'|'decisoes'|'agentes'|'perguntar'|'conexoes'|'brainstorm';
+type View='hoje'|'rotina'|'auditoria'|'empresas'|'decisoes'|'agentes'|'perguntar'|'conexoes'|'brainstorm';
 // short: label in the phone's bottom bar.
-const navigation:{id:View;label:string;short?:string;icon:LucideIcon}[]=[{id:'hoje',label:'Hoje',icon:Home},{id:'empresas',label:'Empresas',icon:Building2},{id:'decisoes',label:'Decisões',icon:CheckCheck},{id:'rotina',label:'Checklist e agenda',short:'Agenda',icon:CalendarCheck},{id:'agentes',label:'Agentes',icon:Layers3},{id:'brainstorm',label:'BrainStorm',icon:FileText},{id:'perguntar',label:'Perguntar à none',short:'Perguntar',icon:Sparkles}];
+const navigation:{id:View;label:string;short?:string;icon:LucideIcon}[]=[{id:'hoje',label:'Hoje',icon:Home},{id:'empresas',label:'Empresas',icon:Building2},{id:'decisoes',label:'Decisões',icon:CheckCheck},{id:'rotina',label:'Checklist e agenda',short:'Agenda',icon:CalendarCheck},{id:'auditoria',label:'Auditoria',icon:ClipboardCheck},{id:'agentes',label:'Agentes',icon:Layers3},{id:'brainstorm',label:'BrainStorm',icon:FileText},{id:'perguntar',label:'Perguntar à none',short:'Perguntar',icon:Sparkles}];
 function Badge({children,tone='neutral'}:{children:React.ReactNode;tone?:string}) {return <span className={`badge ${tone}`}>{children}</span>;}
 function OrgMark({org}:{org:Organization}){const logo=organizationLogo(org);if(logo)return <img src={logo} alt="" aria-hidden="true" className="company-logo"/>;const c=companyColor(org);return <span aria-hidden="true" className="company-mark" style={{background:c+'24',color:c}}>{org.name.slice(0,2).toUpperCase()}</span>;}
 
@@ -37,7 +38,7 @@ export function Cockpit(){
  function go(v:View){setView(v);setCompanyId(null);location.hash=v;window.scrollTo({top:0,behavior:'instant'});}
  function openCompany(id:string){setCompanyId(id);setView('empresas');location.hash='empresas/'+encodeURIComponent(id);window.scrollTo({top:0,behavior:'instant'});}
  async function logout(){try{const r=await fetch('/api/session',{method:'DELETE'});if(!r.ok)throw Error();window.location.assign('/entrar');}catch{setToast('Não foi possível sair. Tente novamente.');}}
- const title=company?company.name:({hoje:'Hoje',rotina:'Checklist e agenda',empresas:'Empresas',decisoes:'Decisões',agentes:'Agentes',perguntar:'Perguntar à none',conexoes:'Conexões',brainstorm:'BrainStorm'}[view]);
+ const title=company?company.name:({hoje:'Hoje',rotina:'Checklist e agenda',auditoria:'Auditoria',empresas:'Empresas',decisoes:'Decisões',agentes:'Agentes',perguntar:'Perguntar à none',conexoes:'Conexões',brainstorm:'BrainStorm'}[view]);
  const agentName=(id:string)=>({secretary:'Secretária',finance:'Financeiro',executive:'Executivo',social:'Social'} as Record<string,string>)[id];
  return <div className={`shell ${collapsed?'collapsed':''}`}>
   <aside className="sidebar"><div className="brand-row"><button className="brand" onClick={()=>go('hoje')} aria-label="none início">{collapsed?'n.':<>none<span>®</span></>}</button><button className="collapse-button" aria-label={collapsed?'Expandir menu':'Recolher menu'} onClick={()=>setCollapsed(c=>!c)}>{collapsed?<PanelLeftOpen size={18}/>:<PanelLeftClose size={18}/>}</button></div><div className="workspace-label"><span className="workspace-dot"/>SEU WORKSPACE</div><nav aria-label="Navegação principal">{navigation.map(n=><button key={n.id} title={n.label} aria-label={n.id === 'decisoes' && pending > 0 ? n.label + ' ' + pending : n.label} aria-current={view===n.id?'page':undefined} className={`nav-item ${view===n.id?'active':''}`} onClick={()=>go(n.id)}><n.icon size={21}/><span data-short={n.short}>{n.label}</span>{n.id==='decisoes'&&pending>0?<b>{pending}</b>:null}</button>)}</nav><div className="sidebar-bottom"><div className="private-note"><ShieldCheck size={19}/><div>Seu espaço, privado.<small>Clareza para decidir.</small></div></div><button className={`nav-item ${view==='conexoes'?'active':''}`} onClick={()=>go('conexoes')} title="Conexões"><Plug size={20}/><span>Conexões</span></button><div className="profile"><span className="avatar">JA</span><div>Jonathan David de Abreu<small>Visão do sócio</small></div><button className="icon-button" title="Sair" aria-label="Sair" onClick={logout}><LogOut size={18}/></button></div></div></aside>
@@ -48,6 +49,7 @@ export function Cockpit(){
   {view==='rotina'&&<><div className="page-heading"><div><p className="eyebrow">SUA ROTINA</p><h1>Checklist e agenda.</h1><p>As tarefas de cada empresa e, em seguida, o resumo dos compromissos do Google Agenda e do ERP da Integral.</p></div></div><CompanyChecklists/><AgendaCard/></>}
   {view==='empresas'&&(company?<CompanyDetail org={company} onBack={()=>go('empresas')}/>:<OrganizationPortfolio onLegacy={openCompany}/>)}
   {view==='decisoes'&&<Decisions/>}
+  {view==='auditoria'&&<Audits/>}
   {view==='agentes'&&<AgentHub onRun={id=>setToast(`Rascunho do agente ${agentName(id)??''} pronto para revisão. Nada foi enviado.`)}/>}
   {view==='brainstorm'&&<BrainStorm/>}
   {view==='perguntar'&&<Chat/>}
@@ -63,11 +65,12 @@ const liveGroups:Record<string,string[]|null>={Financeiro:['Financeiro'],Cliente
 const contextFields=['description','audience','products','services','pricing','billing','profit','ownership','values','guidance'] as const;
 
 function CompanyDetail({org,onBack}:{org:Organization;onBack:()=>void}){
- const [tab,setTab]=useState('Visão geral');const tabs=['Visão geral','Financeiro','Clientes','Documentos','Decisões','Indicadores'];
+ const [tab,setTab]=useState('Visão geral');const tabs=['Visão geral','Financeiro','Clientes','Documentos','Auditorias','Decisões','Indicadores'];
  const live=liveCompanies.includes(org.id);const filled=contextFields.filter(k=>org[k].trim()).length;const missing=contextFields.filter(k=>!org[k].trim()).map(k=>labels[k]);
  return <><button className="text-button back-button" onClick={onBack}><ArrowDownLeft size={16}/>Todas as empresas</button><div className="company-detail-heading"><OrgMark org={org}/><div><p className="eyebrow">{org.sector||'Setor a informar'}</p><h1>{org.name}</h1></div><Badge tone={org.status==='Em operação'?'green':'amber'}>{org.status}</Badge></div>{org.description?<p className="detail-description">{org.description}</p>:null}<div className="tabs" role="tablist" aria-label="Áreas da empresa">{tabs.map(t=><button key={t} id={`tab-${t}`} role="tab" aria-selected={tab===t} aria-controls="company-tabpanel" className={tab===t?'selected':''} onClick={()=>setTab(t)}>{t}</button>)}</div><section id="company-tabpanel" role="tabpanel" aria-labelledby={`tab-${tab}`}>
  {tab==='Visão geral'?<>{live?<LiveIndicators companyId={org.id}/>:<CompanyReports company={org.id} companyName={org.name}/>}<div className="detail-grid"><section className="panel next-step"><p className="eyebrow">CONTEXTO PARA A IA</p><h2>{filled} de {contextFields.length} campos do cadastro preenchidos.</h2><p>{missing.length?'Complete em Empresas → Personalizar: '+missing.slice(0,4).join(', ')+(missing.length>4?'…':'.'):'O cadastro completo orienta os agentes, as análises de decisões e Perguntar à none.'}</p><Badge tone={live?'green':'neutral'}>{live?'Indicadores conectados':'Dados via relatórios importados'}</Badge></section><section className="panel"><div className="section-header"><h2>Decisões da empresa</h2></div><Decisions companyId={org.id} compact/></section></div></>:null}
  {tab==='Decisões'?<Decisions companyId={org.id} compact/>:null}
+ {tab==='Auditorias'?<Audits companyId={org.id}/>:null}
  {tab==='Documentos'?<><p className="reports-hint">Relatórios importados desta empresa. A IA lê os indicadores extraídos de cada arquivo.</p><CompanyReports company={org.id} companyName={org.name}/></>:null}
  {tab in liveGroups?(live?<LiveIndicators companyId={org.id} groups={liveGroups[tab]??undefined}/>:<CompanyReports company={org.id} companyName={org.name}/>):null}
  </section></>;
