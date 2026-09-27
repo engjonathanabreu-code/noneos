@@ -85,7 +85,8 @@ export const operationDecisionChoices = ['Manter o rumo com ajustes','Executar p
 export const kpiUnits:Record<string,string> = {brl:'R$',pct:'%',int:'quantidade',dias:'dias',texto:'texto'};
 
 export const isOperation = (a:Pick<Audit,'kind'|'template'>) => a.kind==='operacao' && !!a.template;
-export const sectionsOf = (a:Pick<Audit,'kind'|'template'>) => isOperation(a) ? a.template!.sections : auditSections;
+// An edited investment audit also carries its own sections in template (kpis empty).
+export const sectionsOf = (a:Pick<Audit,'kind'|'template'>) => a.template ? a.template.sections : auditSections;
 export const choicesOf = (a:Pick<Audit,'kind'|'template'>) => isOperation(a) ? operationDecisionChoices : decisionChoices;
 export const financeFields:[string,string][] = [['Receita média mensal (R$)','revenue'],['Custos variáveis mensais (R$)','variable'],['Despesas fixas mensais (R$)','fixed'],['Remuneração de gestão mensal (R$)','salary'],['Tributos mensais não incluídos acima (R$)','tax'],['Preço por 100% do negócio (R$)','price'],['Dívidas que serão assumidas (R$)','debt'],['Reformas e equipamentos iniciais (R$)','capex'],['Capital de giro adicional (R$)','working']];
 

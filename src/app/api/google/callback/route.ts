@@ -8,7 +8,7 @@ import {exchangeCode, googleCookie, sealToken, stateCookie, tokenCookieOptions} 
 // We answer with a tiny page that navigates client-side, so the next request
 // is same-site and carries the session again.
 function done(status:string){
-  const target = '/?google='+status;
+  const target = '/?google='+status+'#rotina';
   return new NextResponse(`<!doctype html><meta charset="utf-8"><meta http-equiv="refresh" content="0;url=${target}"><script>location.replace(${JSON.stringify(target)})</script>`,{headers:{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store'}});
 }
 

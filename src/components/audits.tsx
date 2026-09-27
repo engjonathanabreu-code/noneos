@@ -1,6 +1,7 @@
 'use client';
 import {useEffect,useRef,useState} from 'react';
-import {ArrowDownLeft,ArrowUpRight,Box,Check,ClipboardCheck,Download,FileText,Landmark,PenLine,Plus,Printer,ShieldCheck,Sparkles,Target,Trash2,Upload,Users,X} from 'lucide-react';
+import {ArrowDownLeft,ArrowUpRight,Box,Check,ClipboardCheck,Download,FileText,Landmark,PenLine,Pencil,Plus,Printer,ShieldCheck,Sparkles,Target,Trash2,Upload,Users,X} from 'lucide-react';
+import {AuditEditor} from '@/components/audit-editor';
 import type {LucideIcon} from 'lucide-react';
 import {useOrganizations,organizationContext,type Organization} from '@/lib/organizations';
 import {companyColor} from '@/lib/brand';
@@ -60,6 +61,8 @@ export function Audits({companyId}:{companyId?:string}){
   const {items:orgs}=useOrganizations();
   const store=useAudits();
   const [open,setOpen]=useState<string|null>(null);
+  const [openTab,setOpenTab]=useState<Tab>('visita');
+  const [removing,setRemoving]=useState<string|null>(null);
   const [creating,setCreating]=useState<'new'|'import'|null>(null);
   const [filter,setFilter]=useState(companyId??'all');
   const [notice,setNotice]=useState('');
@@ -67,18 +70,21 @@ export function Audits({companyId}:{companyId?:string}){
   const active=store.items.find(a=>a.id===open);
   const list=store.items.filter(a=>(companyId??filter)==='all'||a.companyId===(companyId??filter));
   function act(fn:()=>void,ok:string){try{fn();setNotice(ok);}catch{setNotice('Não foi possível salvar. Os dados anteriores foram preservados.');}}
-  if(active) return <AuditDetail key={active.id} audit={active} org={orgOf(active.companyId)} orgs={orgs} onBack={()=>setOpen(null)} onSave={a=>store.save(a)} onRemove={()=>{act(()=>store.remove(active.id),'Auditoria excluída.');setOpen(null);}}/>;
+  const openAudit=(id:string,t:Tab='visita')=>{setOpenTab(t);setOpen(id);};
+  if(active) return <AuditDetail key={active.id} initialTab={openTab} audit={active} org={orgOf(active.companyId)} orgs={orgs} onBack={()=>setOpen(null)} onSave={a=>store.save(a)} onRemove={()=>{act(()=>store.remove(active.id),'Auditoria excluída.');setOpen(null);}}/>;
   return <>
     {!companyId&&<div className="page-heading"><div><p className="eyebrow">NONE / AUDITORIA</p><h1>Antes de decidir, olhe por dentro.</h1><p>Empresas em operação recebem uma auditoria avançada montada pelo agente Executivo com os dados da empresa e o material do seu MBA. Novos investimentos usam o checklist de aquisição.</p></div><div className="card-actions"><button className="btn-ghost" disabled={!store.ready} onClick={()=>setCreating('import')}><Upload size={16}/>Importar do app antigo</button><button className="primary" disabled={!store.ready} onClick={()=>setCreating('new')}><Plus size={17}/>Nova auditoria</button></div></div>}
     {(store.error||notice)&&<p role="status" className="storage-warning">{store.error||notice}</p>}
     {companyId?<div className="section-header"><h2>Auditorias da empresa</h2><div className="card-actions"><button className="btn-ghost btn-sm" disabled={!store.ready} onClick={()=>setCreating('import')}><Upload size={14}/>Importar</button><button className="btn-secondary btn-sm" disabled={!store.ready} onClick={()=>setCreating('new')}><Plus size={14}/>Nova auditoria</button></div></div>
       :<div className="decision-filters"><select aria-label="Filtrar por empresa" value={filter} onChange={e=>setFilter(e.target.value)}><option value="all">Todas as empresas</option>{orgs.map(o=><option key={o.id} value={o.id}>{o.name}</option>)}</select></div>}
-    {list.length?<div className="audit-grid">{list.map(a=>{const m=auditMetrics(a);const org=orgOf(a.companyId);const c=companyColor(org);return <button key={a.id} className="panel audit-card" onClick={()=>setOpen(a.id)}>
+    {list.length?<div className="audit-grid">{list.map(a=>{const m=auditMetrics(a);const org=orgOf(a.companyId);const c=companyColor(org);return <article key={a.id} className="panel audit-card"><button className="audit-card-main" onClick={()=>openAudit(a.id)}>
       <div className="audit-card-top"><span className="company-mark small" style={{background:c+'24',color:c}}>{(org?.name??'?').slice(0,2).toUpperCase()}</span><span className="badge">{kindLabel(a)}</span></div>
       <h2>{a.meta.company||org?.name||'Auditoria'}</h2><small>{org?.name??'Empresa removida'} · {dateBR(a.meta.date)}</small>
       <div className="audit-progress" aria-label={`${m.done} de ${m.items.length} respondidos`}><i style={{width:`${100*m.done/m.items.length}%`}}/></div>
       <p><span className={m.critical.length?'audit-status is-alert':'audit-status'}>{auditStatus(a)}</span> · {m.done} de {m.items.length} itens · {m.critical.length} {m.critical.length===1?'alerta crítico':'alertas críticos'}</p>
-      <span className="audit-open">Abrir auditoria<ArrowUpRight size={16}/></span></button>;})}</div>
+      <span className="audit-open">Abrir auditoria<ArrowUpRight size={16}/></span></button>
+      <div className="audit-card-actions">{removing===a.id?<><span>Excluir esta auditoria?</span><button className="text-button danger" onClick={()=>{act(()=>store.remove(a.id),'Auditoria excluída.');setRemoving(null);}}>Sim, excluir</button><button className="text-button" onClick={()=>setRemoving(null)}>Cancelar</button></>:<><button className="text-button" onClick={()=>openAudit(a.id,'estrutura')}><Pencil size={14}/>Editar</button><button className="text-button danger" onClick={()=>setRemoving(a.id)}><Trash2 size={14}/>Excluir</button></>}</div>
+    </article>;})}</div>
     :<div className="panel empty"><ClipboardCheck size={28}/><h3>{store.items.length?'Nenhuma auditoria nesta empresa':'Nenhuma auditoria ainda'}</h3><p>Crie uma auditoria ou importe o backup (.json) exportado no app antigo em Ferramentas → Exportar auditoria.</p></div>}
     {creating?<CreateDialog mode={creating} orgs={orgs} defaultCompany={companyId??(filter!=='all'?filter:undefined)} onClose={()=>setCreating(null)} onCreate={a=>{act(()=>store.save(a),creating==='import'?'Auditoria importada e ligada à empresa.':'Auditoria criada.');setCreating(null);setOpen(a.id);}}/>:null}
   </>;
@@ -129,10 +135,10 @@ function CreateDialog({mode,orgs,defaultCompany,onClose,onCreate}:{mode:'new'|'i
   </Dialog>;
 }
 
-type Tab='visita'|'checklist'|'numeros'|'diagnostico';
-function AuditDetail({audit,org,orgs,onBack,onSave,onRemove}:{audit:Audit;org?:Organization;orgs:Organization[];onBack:()=>void;onSave:(a:Audit)=>void;onRemove:()=>void}){
+type Tab='visita'|'checklist'|'numeros'|'diagnostico'|'estrutura';
+function AuditDetail({audit,org,orgs,initialTab='visita',onBack,onSave,onRemove}:{audit:Audit;org?:Organization;orgs:Organization[];initialTab?:Tab;onBack:()=>void;onSave:(a:Audit)=>void;onRemove:()=>void}){
   const [a,setA]=useState(audit);
-  const [tab,setTab]=useState<Tab>('visita');
+  const [tab,setTab]=useState<Tab>(initialTab);
   const [area,setArea]=useState(0);
   const [confirm,setConfirm]=useState(false);
   const [notice,setNotice]=useState('');
@@ -160,7 +166,8 @@ function AuditDetail({audit,org,orgs,onBack,onSave,onRemove}:{audit:Audit;org?:O
       setNotice('Decisão criada em Decisões. Use “Pedir análise da none” lá: a IA lê esta auditoria.');}
     catch{setNotice('Não foi possível criar a decisão.');}
   }
-  const tabs:[Tab,string][]=[['visita',op?'Visão geral':'Visita'],['checklist','Checklist'],['numeros',op?'Indicadores':'Números'],['diagnostico','Diagnóstico']];
+  const tabs:[Tab,string][]=[['visita',op?'Visão geral':'Visita'],['checklist','Checklist'],['numeros',op?'Indicadores':'Números'],['diagnostico','Diagnóstico'],['estrutura','Estrutura']];
+  function saveNow(next:Audit,msg:string){if(timer.current){clearTimeout(timer.current);timer.current=null;}setA(next);latest.current=next;try{saveRef.current(next);setNotice(msg);}catch{setNotice('Não foi possível salvar. Exporte uma cópia da auditoria.');}}
   return <div className="audit-detail">
     <button className="text-button back-button" onClick={onBack}><ArrowDownLeft size={16}/>Todas as auditorias</button>
     <div className="audit-head"><p className="eyebrow">AUDITORIA · {kindLabel(a).toUpperCase()}</p><h1>{a.meta.company||org?.name||'Auditoria'}</h1><p>{org?.name??'Empresa removida'} · {dateBR(a.meta.date)} · <span className={auditMetrics(a).critical.length?'audit-status is-alert':'audit-status'}>{auditStatus(a)}</span></p></div>
@@ -180,6 +187,7 @@ function AuditDetail({audit,org,orgs,onBack,onSave,onRemove}:{audit:Audit;org?:O
     </>}
     {tab==='checklist'&&<Checklist audit={a} area={area} setArea={i=>go('checklist',i)} setAnswer={setAnswer} onDone={()=>go('diagnostico')}/>}
     {tab==='numeros'&&(op?<Kpis audit={a} set={(k,v)=>setGroup('finance',k,v)} onNext={()=>go('diagnostico')}/>:<Numbers audit={a} set={(k,v)=>setGroup('finance',k,v)} onNext={()=>go('diagnostico')}/>)}
+    {tab==='estrutura'&&<AuditEditor audit={a} onCancel={()=>go('visita')} onSave={next=>{saveNow(next,'Estrutura da auditoria salva.');go('visita');}}/>}
     {tab==='diagnostico'&&<Diagnosis audit={a} setDecision={(k,v)=>setGroup('decision',k,v)} onNumbers={()=>go('numeros')} onArea={i=>go('checklist',i)}/>}
     <div className="audit-actions card-actions">
       <button className="btn-secondary btn-sm" onClick={toDecision}><Target size={14}/>Criar decisão com esta auditoria</button>

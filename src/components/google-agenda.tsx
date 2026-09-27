@@ -2,7 +2,6 @@
 import {useCallback,useEffect,useState} from 'react';
 import {CalendarDays,ExternalLink,MapPin,RefreshCw,Unplug} from 'lucide-react';
 import type {CalendarEvent} from '@/lib/google';
-import {NewEventButton} from '@/components/new-event';
 
 export type AgendaState = 'loading'|'ok'|'desconectado'|'nao_configurado'|'erro';
 export function localDay(d:Date){return [d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-');}
@@ -33,13 +32,6 @@ export function eventDays(e:CalendarEvent){
 }
 export function eventTime(e:CalendarEvent){return e.allDay?'Dia todo':new Date(e.start).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});}
 
-export async function scheduleOnGoogle(title:string,date:string){
- const r=await fetch('/api/google/events',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title,date})});
- const j=await r.json().catch(()=>({}));
- if(!r.ok)throw new Error(j.status==='desconectado'?'Conecte o Google Agenda para agendar.':j.error??'Não foi possível agendar.');
- return j.event as {id:string;link?:string};
-}
-
 export function GoogleConnection({state,onChange,message}:{state:AgendaState;onChange:()=>void;message?:string}){
  const [busy,setBusy]=useState(false);
  async function disconnect(){setBusy(true);try{await fetch('/api/google/connection',{method:'DELETE'});}finally{setBusy(false);onChange();}}
@@ -48,23 +40,6 @@ export function GoogleConnection({state,onChange,message}:{state:AgendaState;onC
  if(state==='ok')return <p className="gcal-status"><span><i className="gcal-dot"/>Google Agenda · conectado</span><button className="text-button" disabled={busy} onClick={disconnect}><Unplug size={14}/>Desconectar</button></p>;
  if(state==='erro')return <p className="gcal-status"><span>Google Agenda · {message||'indisponível agora'}</span><button className="text-button" onClick={onChange}><RefreshCw size={14}/>Tentar novamente</button></p>;
  return <p className="gcal-status">Google Agenda · verificando…</p>;
-}
-
-const notices:Record<string,string>={conectado:'Google Agenda conectado.',cancelado:'Conexão com o Google cancelada.','estado-invalido':'A conexão expirou. Tente conectar novamente.',erro:'O Google recusou a conexão. Tente novamente.','nao-configurado':'Credenciais do Google ainda não configuradas no servidor.'};
-
-export function AgendaCard(){
- const [range]=useState(()=>{const a=new Date();a.setHours(0,0,0,0);const b=new Date(a);b.setDate(b.getDate()+8);return [a,b] as const;});
- const {state,events:google,reload,message}=useGoogleEvents(range[0],range[1]);const erp=useErpEvents(range[0],range[1]);const [notice,setNotice]=useState('');
- const events=[...(state==='ok'?google:[]),...(erp.state==='ok'?erp.events:[])].sort(byStart);const any=state==='ok'||erp.state==='ok';
- useEffect(()=>{const s=new URLSearchParams(location.search).get('google');if(s){setNotice(notices[s]??'');history.replaceState(null,'',location.pathname);}},[]);
- const days=Array.from({length:8},(_,i)=>{const d=new Date(range[0]);d.setDate(d.getDate()+i);return d;});
- const byDay=days.map(d=>({d,key:localDay(d),list:events.filter(e=>eventDays(e).includes(localDay(d)))})).filter((x,i)=>i===0||x.list.length);
- return <section className="panel agenda-card" aria-label="Agenda"><div className="section-header"><div><p className="eyebrow">SUA AGENDA</p><h2>Hoje e próximos 7 dias</h2></div>{state!=='nao_configurado'?<NewEventButton google={state} onCreated={reload}/>:null}</div>
-  {notice&&<p role="status" className="gcal-notice">{notice}</p>}
-  {any&&<div className="agenda-days">{byDay.map(({d,key,list})=><div className="agenda-day" key={key}><h3>{key===localDay(new Date())?'Hoje':d.toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'short'})}</h3>{list.length?list.map(e=><EventRow key={e.id+key} e={e}/>):<p className="agenda-empty">Nada na agenda hoje.</p>}</div>)}</div>}
-  {state==='loading'&&erp.state==='loading'&&<p className="agenda-empty">Carregando agenda…</p>}
-  <GoogleConnection state={state} onChange={reload} message={message}/><ErpStatus state={erp.state} onRetry={erp.reload}/>
- </section>;
 }
 
 export function ErpStatus({state,onRetry}:{state:AgendaState;onRetry:()=>void}){

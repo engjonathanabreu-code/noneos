@@ -28,17 +28,11 @@ function downloadIcs(d:Draft){
   setTimeout(()=>URL.revokeObjectURL(url),1500);
 }
 
-export function NewEventButton({google,onCreated}:{google:AgendaState;onCreated:()=>void}){
-  const [open,setOpen]=useState(false);
-  return <>
-    <button className="btn-secondary btn-sm" onClick={()=>setOpen(true)}><CalendarPlus size={15}/>Novo evento</button>
-    {open?<NewEventDialog google={google} onClose={()=>setOpen(false)} onCreated={onCreated}/>:null}
-  </>;
-}
-
-function NewEventDialog({google,onClose,onCreated}:{google:AgendaState;onClose:()=>void;onCreated:()=>void}){
+export type EventPreset = {title?:string;allDay?:boolean;date?:string;startTime?:string};
+// Opens pre-filled when called from a calendar slot or a checklist item.
+export function NewEventDialog({google,onClose,onCreated,preset}:{google:AgendaState;onClose:()=>void;onCreated:()=>void;preset?:EventPreset}){
   const ref=useRef<HTMLDialogElement>(null);
-  const [d,setD]=useState<Draft>(blank);
+  const [d,setD]=useState<Draft>(()=>{const b=blank();if(!preset)return b;const date=preset.date??b.date,start=preset.startTime??b.startTime;return {...b,title:preset.title??'',allDay:preset.allDay??false,date,endDate:date,startTime:start,endTime:addHour(start)};});
   const [busy,setBusy]=useState(false);
   const [error,setError]=useState('');
   const [done,setDone]=useState<{link?:string;draft:Draft}|null>(null);

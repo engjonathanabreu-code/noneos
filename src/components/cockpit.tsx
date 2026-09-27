@@ -10,7 +10,7 @@ import {LocalBackup} from '@/components/local-backup';
 import {CompanyChecklists} from '@/components/company-checklists';
 import {BrainStorm} from '@/components/brainstorm';
 import {LiveIndicators,PortfolioPulse} from '@/components/live-indicators';
-import {AgendaCard} from '@/components/google-agenda';
+import {CalendarPanel} from '@/components/calendar-view';
 import {CompanyReports} from '@/components/company-reports';
 import {organizationLogo,companyColor} from '@/lib/brand';
 import {ConnectionsStatus} from '@/components/connections-status';
@@ -46,7 +46,7 @@ export function Cockpit(){
   <main id="main-content" className="content"><div className={`demo-notice sync-${sync.state}`}><span className="demo-dot"/><span>Workspace privado · {syncLabel[sync.state]}</span>{sync.state==='offline'?<button className="notice-end text-button" onClick={()=>void sync.syncNow()}>Tentar sincronizar</button>:<button className="notice-end text-button" onClick={()=>go('conexoes')}>Ver conexões</button>}</div>
   <div className="view-transition" key={view+':'+(companyId??'')} >
   {view==='hoje'&&<><div className="page-heading"><div><p className="eyebrow">NONE / HOLDING DE INVESTIMENTOS</p><h1>Seu portfólio, em perspectiva.</h1><p>Indicadores dos sistemas conectados e decisões em um só lugar. Checklist e agenda têm um espaço próprio no menu.</p></div></div><div className="overview-stats"><button className="stat-card" onClick={()=>go('empresas')}><span className="stat-label">Investimentos cadastrados</span><strong>{portfolio.items.length}</strong><span className="stat-foot">Organizar portfólio<ArrowUpRight size={17}/></span></button><button className="stat-card" onClick={()=>go('decisoes')}><span className="stat-label">Decisões pendentes</span><strong>{pending}</strong><span className="stat-foot">{pending?'Revisar decisões':'Registrar uma decisão'}<ArrowUpRight size={17}/></span></button></div><section className="portfolio-section"><div className="section-header"><h2>Investimentos da none</h2><button className="text-button" onClick={()=>go('empresas')}>Gerenciar organizações</button></div><div className="mini-companies">{portfolio.items.map(c=><button key={c.id} onClick={()=>openCompany(c.id)}>{organizationLogo(c)?<img src={organizationLogo(c)} alt="" style={{width:32,height:32,objectFit:'contain'}}/>:<Building2 size={22}/>}<span>{c.name}<small>{c.status}</small></span></button>)}</div></section><PortfolioPulse onOpen={openCompany}/></>}
-  {view==='rotina'&&<><div className="page-heading"><div><p className="eyebrow">SUA ROTINA</p><h1>Checklist e agenda.</h1><p>As tarefas de cada empresa e, em seguida, o resumo dos compromissos do Google Agenda e do ERP da Integral.</p></div></div><CompanyChecklists/><AgendaCard/></>}
+  {view==='rotina'&&<><div className="page-heading"><div><p className="eyebrow">SUA ROTINA</p><h1>Checklist e agenda.</h1><p>As tarefas de cada empresa e, em seguida, o resumo dos compromissos do Google Agenda e do ERP da Integral.</p></div></div><CompanyChecklists/><CalendarPanel/></>}
   {view==='empresas'&&(company?<CompanyDetail org={company} onBack={()=>go('empresas')}/>:<OrganizationPortfolio onLegacy={openCompany}/>)}
   {view==='decisoes'&&<Decisions/>}
   {view==='auditoria'&&<Audits/>}
