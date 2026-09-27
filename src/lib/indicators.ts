@@ -1,5 +1,5 @@
 import 'server-only';
-import postgres from 'postgres';
+import {client, errorCode} from './db';
 import type {CompanyId} from './domain';
 
 // Each company's Supabase project exposes only none_os.resumo(), an aggregated,
@@ -19,13 +19,6 @@ export function hasSources(id:string):id is CompanyId {return id in sources;}
 
 const TTL = 5*60*1000;
 const cache = new Map<string,{at:number;result:SourceResult}>();
-const clients = new Map<string,postgres.Sql>();
-
-function client(url:string){
-  let sql = clients.get(url);
-  if(!sql){sql = postgres(url,{prepare:false,max:1,idle_timeout:20,connect_timeout:8,ssl:'require'});clients.set(url,sql);}
-  return sql;
-}
 
 async function read(fonte:string,env:string):Promise<SourceResult>{
   const url = process.env[env];
@@ -45,7 +38,6 @@ async function read(fonte:string,env:string):Promise<SourceResult>{
   }
 }
 
-function errorCode(e:unknown){const x=e as {code?:string;errno?:string;name?:string};return x?.code??x?.errno??x?.name??'unknown';}
 
 // ERP Integral agenda: public events, goal deadlines, process SLAs and Radar deadlines.
 export type ErpAgendaItem = {id:string;tipo:'evento'|'meta'|'processo'|'radar';titulo:string;inicio:string;fim:string;dia_todo:boolean;agenda:string|null};

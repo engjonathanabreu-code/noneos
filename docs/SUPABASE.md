@@ -26,3 +26,10 @@ Em cada projeto abaixo existe o schema `none_os` com a função `none_os.resumo(
 | REURB.Software | Matricula.IA (lnuoakuzkpyqilatxgkz) | NONE_DB_MATRICULAIA |
 
 O servidor (`src/lib/indicators.ts`, rota `/api/indicadores`, exige sessão) lê essas funções com cache de 5 minutos. Para mudar um indicador, altere a função no projeto de origem; a tela renderiza qualquer item `{grupo, rotulo, valor, formato, nota}`.
+
+## Implementado: base central do none OS (set/2026)
+Relatórios analisados pela IA ficam no schema `none_os` do projeto **Financas Pessoais Casa** (esuvvrbpcbehnqpqczbg), separado das tabelas pessoais (`public`) e fora da Data API.
+
+- `none_os.relatorios` e `none_os.indicadores`: cada linha pertence a uma organização (`organizacao_id`). Uma chave estrangeira composta `(relatorio_id, organizacao_id)` impede que um indicador aponte para relatório de outra empresa.
+- O papel `none_app` (variável `NONE_DB_APP` na Vercel) não tem acesso às tabelas; só executa `salvar_relatorio(org, dados)`, `relatorios_da_organizacao(org)` e `remover_relatorio(org, id)`, sempre filtradas pela organização informada.
+- Rotas: `/api/relatorios/extrair` (IA lê o arquivo, nada é salvo) e `/api/relatorios` (GET/POST/DELETE por empresa, exige sessão).

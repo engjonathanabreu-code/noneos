@@ -2,10 +2,12 @@ import {NextRequest, NextResponse} from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 import {authenticated} from '@/lib/auth';
 import {aiConfigured, extractReport} from '@/lib/report-extract';
+import {orgPattern} from '@/lib/reports-db';
 
 export const maxDuration = 120;
 
 function sameOrigin(req:NextRequest){try{return new URL(req.headers.get('origin')??'').host===req.headers.get('host');}catch{return false;}}
+// Known portfolio context; other organizations use the name sent by the page.
 const companies:Record<string,string> = {ct:'CT Diego Silva (academia / centro de treinamento, sistema Next Fit)',bergamota:'Bergamota (confeitaria)',vidas:'Cartão Vidas (clube de vantagens)',integral:'Integral Soluções em Engenharia',mcl:'Minha Casa Legal',reurb:'REURB.Software'};
 const MAX = 3_500_000; // ~2.6 MB PDF after base64; Vercel request bodies cap at 4.5 MB
 
@@ -13,9 +15,10 @@ export async function POST(req:NextRequest){
   if(!sameOrigin(req)) return NextResponse.json({error:'Origem inválida.'},{status:403});
   if(!(await authenticated())) return NextResponse.json({error:'Não autenticado.'},{status:401});
   if(!aiConfigured()) return NextResponse.json({error:'A IA ainda não está configurada no servidor (ANTHROPIC_API_KEY).'},{status:409});
-  let b:{company?:unknown;fileName?:unknown;kind?:unknown;data?:unknown};
+  let b:{company?:unknown;companyName?:unknown;fileName?:unknown;kind?:unknown;data?:unknown};
   try{b = await req.json();}catch{return NextResponse.json({error:'Arquivo inválido.'},{status:400});}
-  const company = typeof b.company==='string' ? companies[b.company] : undefined;
+  const org = typeof b.company==='string' && orgPattern.test(b.company) ? b.company : null;
+  const company = org ? companies[org] ?? (typeof b.companyName==='string' && b.companyName.trim() ? b.companyName.trim().slice(0,150) : undefined) : undefined;
   const fileName = typeof b.fileName==='string' ? b.fileName.slice(0,200) : '';
   if(!company || !fileName || (b.kind!=='pdf' && b.kind!=='text') || typeof b.data!=='string' || !b.data) return NextResponse.json({error:'Arquivo inválido.'},{status:400});
   if(b.data.length > MAX) return NextResponse.json({error:'Arquivo grande demais. Exporte um período menor.'},{status:413});

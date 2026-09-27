@@ -46,7 +46,7 @@ function PulseCard({id,name,pick,onOpen}:{id:string;name:string;pick:string[];on
 
 // Companies without a database: headline numbers from reports imported through the none AI.
 function ReportPulseCard({id,name,onOpen}:{id:string;name:string;onOpen:()=>void}){
- const latest=latestIndicators(useReports(id)).slice(-6);
+ const latest=latestIndicators(useReports(id).items).slice(-6);
  return <article className="panel pulse-card"><header><strong>{name}</strong><button className="text-button" onClick={onOpen}>{latest.length?'Detalhes':'Importar relatório'}</button></header>
   {latest.length?<dl>{latest.map(({i})=><div key={i.rotulo}><dt>{i.rotulo}</dt><dd>{formatValue(i)}</dd></div>)}</dl>:<p className="pulse-empty">Sem integração direta. Importe relatórios do Next Fit na página da empresa.</p>}
   {latest.length>0&&<p className="pulse-empty">Fonte: relatórios importados · último: {period(latest[latest.length-1].r)}</p>}
