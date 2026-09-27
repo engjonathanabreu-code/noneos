@@ -4,6 +4,7 @@ import {aiConfigured, claude, MODEL} from '@/lib/claude';
 import {googleConfigured, googleCookie} from '@/lib/google';
 import {companyIndicators} from '@/lib/indicators';
 import {errorCode, pingReportsDb, reportsConfigured} from '@/lib/reports-db';
+import {knowledgeStatus} from '@/lib/knowledge';
 
 // Live status of every none OS connection, checked on the server.
 export type ConnectionStatus = 'conectado'|'desconectado'|'nao_configurado'|'erro'|'previsto'|'manual';
@@ -26,10 +27,11 @@ async function checkAi():Promise<Pick<Connection,'status'|'detail'>>{
 
 export async function GET(req:NextRequest){
   if(!(await authenticated())) return NextResponse.json({error:'Não autenticado.'},{status:401});
-  const [ai, integral, mcl, reurb, db] = await Promise.all([
+  const [ai, integral, mcl, reurb, db, kb] = await Promise.all([
     checkAi(),
     companyIndicators('integral'), companyIndicators('mcl'), companyIndicators('reurb'),
-    reportsConfigured() ? pingReportsDb().then(()=>true).catch(e=>{console.error('[conexoes] db:',errorCode(e));return false;}) : Promise.resolve(null)
+    reportsConfigured() ? pingReportsDb().then(()=>true).catch(e=>{console.error('[conexoes] db:',errorCode(e));return false;}) : Promise.resolve(null),
+    knowledgeStatus()
   ]);
   const google:Pick<Connection,'status'|'detail'> = !googleConfigured()
     ? {status:'nao_configurado', detail:'Credenciais do Google ausentes no servidor.'}
@@ -49,6 +51,8 @@ export async function GET(req:NextRequest){
       status:integral.some(f=>f.fonte==='ERP INTEGRAL Interno' && f.status==='ok')?'conectado':'erro', detail:'Somente leitura · aparece em Hoje e no calendário do checklist'},
     {id:'none-db', name:'Base do none OS', kind:'Supabase · base central', purpose:'Sincroniza organizações, decisões, notas, checklists e agentes entre dispositivos; guarda os relatórios lidos pela IA',
       status:db===null?'nao_configurado':db?'conectado':'erro', detail:db?'Schema none_os · acesso apenas por funções, com histórico de versões':db===null?'Adicione NONE_DB_APP na Vercel.':'Não foi possível conectar agora.'},
+    {id:'kb-mba', name:'Base de conhecimento · MBA FGV', kind:'Supabase · base central', purpose:'Material do MBA usado pelo agente Executivo nas consultorias e pelo Financeiro nas análises',
+      status:kb===null?(db===null?'nao_configurado':'erro'):kb.trechos?'conectado':'desconectado', detail:kb?`${kb.trechos.toLocaleString('pt-BR')} trechos de ${kb.disciplinas} disciplinas`:'Base indisponível agora.'},
     {id:'nextfit', name:'Next Fit', kind:'CT Diego Silva', purpose:'Sem API: relatórios exportados e lidos pela IA', status:'manual', detail:'Envie relatórios em Organizações → CT Diego Silva'},
     {id:'whatsapp', name:'WhatsApp', kind:'Comunicação', purpose:'Conversas com clientes', status:'previsto', detail:'Integração prevista'},
     {id:'chatwoot', name:'Chatwoot', kind:'Atendimento', purpose:'Conversas e relacionamento', status:'previsto', detail:'Integração prevista'},

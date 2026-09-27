@@ -48,3 +48,6 @@ Organizações, logos, decisões, BrainStorm, checklists e agentes deixam de exi
 
 ## Auditoria de investimento (set/2026)
 O none auditoria (antes um app separado, none-auditoria-confeitaria) virou a aba Auditoria. Cada auditoria fica em `auditoria:<id>` em `none_os.documentos_estado`, ligada a uma empresa. Backups exportados pelo app antigo são importados sem mudança de formato. `companyAudits()` (src/lib/state-db.ts) resume as auditorias (sem as anotações à mão) para os agentes Executivo e Financeiro, a análise de Decisões e Perguntar à none.
+
+## Base de conhecimento · MBA FGV (set/2026)
+O material do MBA (OneDrive/Pós Graduação FGV, 149 arquivos) foi extraído localmente com `scripts/kb-extract.mjs` e carregado em `none_os.conhecimento` (3.672 trechos, busca em português, RLS sem políticas). O papel `none_app` só executa `conhecimento_buscar(consulta, limite)` e `conhecimento_status()`; a função de carga foi removida após o uso. O agente Executivo usa a base na entrega "Nova consultoria" (vários temas + achados das auditorias) e, de forma focada, nas demais entregas do Executivo e do Financeiro.
