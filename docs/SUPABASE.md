@@ -14,3 +14,15 @@ Mapear cada organization_id da holding para o projeto/fonte correspondente. Norm
 NEXT_PUBLIC_SUPABASE_URL e NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY para o projeto central após implementar cliente/Auth/RLS. Segredos de conectores apenas no servidor, sem prefixo NEXT_PUBLIC_. Não preencher .env.example com chaves reais.
 
 Fontes oficiais consultadas: https://supabase.com/docs/guides/getting-started/api-keys e https://supabase.com/docs/guides/database/postgres/row-level-security
+
+## Implementado: indicadores somente leitura (set/2026)
+Em cada projeto abaixo existe o schema `none_os` com a função `none_os.resumo()` (security definer) que devolve apenas totais agregados em JSON. O papel `none_reader` (NOLOGIN até receber senha) só tem USAGE no schema e EXECUTE nessa função — nenhum acesso a tabelas.
+
+| Empresa | Projeto Supabase | Variável na Vercel |
+|---|---|---|
+| Integral | CRM INTEGRAL OFICIAL (oxjqcpkvaseqhjjtsxmd) | NONE_DB_INTEGRAL_CRM |
+| Integral | ERP INTEGRAL Interno (ycdsyilyvaxslkwbkxyo) | NONE_DB_INTEGRAL_ERP |
+| Minha Casa Legal | Financeiro MCL (jeuecmmnxvlzpruyoraw) | NONE_DB_MCL |
+| REURB.Software | Matricula.IA (lnuoakuzkpyqilatxgkz) | NONE_DB_MATRICULAIA |
+
+O servidor (`src/lib/indicators.ts`, rota `/api/indicadores`, exige sessão) lê essas funções com cache de 5 minutos. Para mudar um indicador, altere a função no projeto de origem; a tela renderiza qualquer item `{grupo, rotulo, valor, formato, nota}`.
