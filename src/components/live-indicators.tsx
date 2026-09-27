@@ -24,7 +24,7 @@ export function LiveIndicators({companyId,groups}:{companyId:string;groups?:stri
 
 // Home summary: the headline indicators of each company with a live source.
 const pulse:{id:string;name:string;pick:string[]}[]=[
- {id:'integral',name:'Integral',pick:['Clientes ativos','Processos em andamento','Negociações abertas (CRM)','Valor em negociação']},
+ {id:'integral',name:'Integral',pick:['Resultado do mês','Contratos públicos a receber (total)','Carteira REURB a receber','Contas a pagar (próx. 30 dias)','Clientes ativos','Processos em andamento']},
  {id:'mcl',name:'Minha Casa Legal',pick:['Previsto para receber no mês','Recebido no mês','Parcelas em atraso','Carteira a receber']},
  {id:'reurb',name:'REURB.Software',pick:['Receita recorrente mensal (MRR)','Assinaturas ativas','Visitas ao site (30 dias)','Pré-cadastros']}
 ];
