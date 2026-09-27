@@ -1,8 +1,8 @@
-# Integração futura: holding e investimentos
+# Supabase no none OS
 
-O Supabase não está implementado nesta versão. Adicionar variáveis não ativa sincronização. Não execute SQL copiado sem definir permissões e testar em desenvolvimento.
+As seções "Implementado" no fim deste arquivo descrevem o que está em produção. As demais são o plano para a evolução (usuários individuais e Auth). Não execute SQL copiado sem definir permissões e testar em desenvolvimento.
 
-## Projeto central none OS
+## Evolução planejada: usuários individuais
 Implementar Supabase Auth com usuários individuais; modelar organizações, membros, notas, pastas, itens recorrentes e conclusões por período. Criar migrations versionadas, RLS em cada tabela exposta e políticas por usuário/organização; logos em bucket privado com políticas e URLs assinadas. Migrar dados locais com prévia, backup e deduplicação. Testar isolamento entre usuários antes de produção.
 
 ## Bases das empresas
@@ -10,7 +10,7 @@ Cada projeto mantém seu banco e operação. Criar adaptadores no servidor para 
 
 Mapear cada organization_id da holding para o projeto/fonte correspondente. Normalizar dados com origem, data de atualização e identificador externo. Não misturar valores de empresas distintas nem substituir o ERP. Testar cada conexão isoladamente e só depois habilitar sincronização.
 
-## Variáveis futuras (não utilizadas pelo código atual)
+## Variáveis para a evolução com Auth (não utilizadas pelo código atual)
 NEXT_PUBLIC_SUPABASE_URL e NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY para o projeto central após implementar cliente/Auth/RLS. Segredos de conectores apenas no servidor, sem prefixo NEXT_PUBLIC_. Não preencher .env.example com chaves reais.
 
 Fontes oficiais consultadas: https://supabase.com/docs/guides/getting-started/api-keys e https://supabase.com/docs/guides/database/postgres/row-level-security
@@ -33,3 +33,12 @@ Relatórios analisados pela IA ficam no schema `none_os` do projeto **Financas P
 - `none_os.relatorios` e `none_os.indicadores`: cada linha pertence a uma organização (`organizacao_id`). Uma chave estrangeira composta `(relatorio_id, organizacao_id)` impede que um indicador aponte para relatório de outra empresa.
 - O papel `none_app` (variável `NONE_DB_APP` na Vercel) não tem acesso às tabelas; só executa `salvar_relatorio(org, dados)`, `relatorios_da_organizacao(org)` e `remover_relatorio(org, id)`, sempre filtradas pela organização informada.
 - Rotas: `/api/relatorios/extrair` (IA lê o arquivo, nada é salvo) e `/api/relatorios` (GET/POST/DELETE por empresa, exige sessão).
+
+## Implementado: sincronização do workspace (set/2026)
+Organizações, logos, decisões, BrainStorm, checklists e agentes deixam de existir só no navegador. Ficam em `none_os.documentos_estado` (mesmo projeto **Financas Pessoais Casa**), um documento JSON por chave: `organizacoes`, `logo:<organização>`, `brainstorm`, `checklists`, `agentes`, `decisoes`.
+
+- Cada gravação informa a versão em que se baseou. `estado_salvar` recusa gravações antigas (`conflito_de_versao`), arquiva a versão anterior em `documentos_estado_historico` (últimas 30 por chave) e ignora gravações sem mudança.
+- O papel `none_app` só executa `estado_versoes()`, `estado_ler(chaves)`, `estado_salvar(chave, dados, versao_base)`, `estado_remover(chave)` e `estado_historico(chave)`. RLS ligado e nenhuma política: as tabelas não são acessíveis diretamente.
+- Rota `/api/estado` (sessão obrigatória; PUT exige mesma origem, até 4 MB por documento).
+- No navegador, `src/components/workspace-sync.tsx` baixa as versões novas antes de abrir o cockpit, envia as alterações locais (1,2 s após salvar), verifica de novo ao voltar à aba e a cada 2 minutos. Se o mesmo dado mudou em dois dispositivos, a versão do servidor vence e a cópia local é guardada em `none-sync-conflito-*`, incluída na exportação em Conexões.
+- Sem `NONE_DB_APP`, o workspace continua funcionando só no navegador, e a barra do topo mostra "Salvo neste navegador".

@@ -1,6 +1,6 @@
 'use client';
 import {useEffect,useState} from 'react';
-import {companies} from './demo';
+import {companies} from './seed';
 import {paletteHexes} from './brand';
 export type Organization={id:string;name:string;sector:string;status:string;description:string;audience:string;products:string;services:string;pricing:string;billing:string;profit:string;ownership:string;values:string;guidance:string;logo:string;color?:string};
 export const organizationKey='none-organizations-v1';

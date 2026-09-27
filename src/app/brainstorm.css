@@ -60,3 +60,4 @@
 .bs-floating-ai:hover{background:#09664f}.bs-floating-ai[aria-expanded=true]{background:#164b3e}
 @media(max-width:1000px){.bs-workspace.bs-chat-hidden{grid-template-columns:none}}
 @media(max-width:700px){.bs-floating-ai{right:18px;bottom:86px;padding:12px}.bs-floating-ai span{display:none}.bs-folder-tree button{font-size:13px}}
+.bs-chat-error{font-size:12px;line-height:1.6;color:var(--danger);background:color-mix(in srgb,var(--danger) 8%,transparent);border-radius:8px;padding:8px 10px;margin:0 0 12px}

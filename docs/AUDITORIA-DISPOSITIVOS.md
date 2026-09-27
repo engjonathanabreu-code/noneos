@@ -20,3 +20,6 @@ Antes de uso definitivo, validar no Safari: iPhone retrato/paisagem, iPad com te
 O pacote compila e contém os arquivos necessários para GitHub/Vercel. Não contém credenciais ou dados salvos no navegador. As seis empresas iniciais permanecem. O acesso atual é por chave compartilhada; falta login individual e limitação distribuída de tentativas para ampliar o uso.
 
 Dados permanecem no localStorage, sem sincronização entre dispositivos e sem Supabase ativo. Faça backup em Conexões antes de trocar domínio ou navegador. Integrações e IA continuam desconectadas. Consulte SUPABASE.md para a etapa posterior de implementação.
+
+## Atualização — 27/09/2026
+Os dados deixaram de ficar presos a um navegador: o workspace é sincronizado pela base do none OS (ver docs/SUPABASE.md). Decisões passaram a ser um módulo real (criar, editar, excluir, decidir, histórico e análise da IA), e todas as organizações, inclusive as cadastradas depois, têm página própria com indicadores ou relatórios importados. O código de demonstração (decisões fictícias, simuladores locais dos agentes e conectores de exemplo) foi removido.

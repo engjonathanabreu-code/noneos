@@ -129,3 +129,30 @@
 .connector .connector-footer{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:var(--s-2)}
 .connector.is-conectado .stat-icon{color:var(--green);background:var(--green-soft)}
 .connector.is-previsto{opacity:.75}
+
+/* Workspace sync, decisions, backup */
+.sync-loading{min-height:100vh;display:grid;place-content:center;justify-items:center;gap:10px;background:var(--paper);color:var(--muted);font-size:var(--t-sm)}
+.sync-loading .brand{font-family:var(--font-display);font-size:34px;color:var(--ink)}
+.sync-loading .brand span{font-size:.45em;vertical-align:super}
+.demo-notice button.notice-end{margin-left:auto;padding:0;min-height:0;background:none;border:0;color:inherit;text-decoration:underline;text-underline-offset:3px}
+.demo-notice.sync-offline .demo-dot{background:var(--warn)}
+.demo-notice.sync-saving .demo-dot,.demo-notice.sync-loading .demo-dot{background:var(--info)}
+.sync-toast{max-width:min(560px,calc(100vw - 32px))}
+.sync-toast button{font-size:18px;line-height:1}
+.pre-line{white-space:pre-line}
+.decision-form{display:grid;gap:14px;margin-top:8px}
+.decision-field{display:grid;gap:6px}
+.decision-field input,.decision-field select,.decision-field textarea{width:100%}
+.decision-field textarea{min-height:88px}
+.decision-form-row{display:grid;grid-template-columns:2fr 1fr 1fr;gap:12px}
+.decision-manage{display:flex;flex-wrap:wrap;align-items:center;gap:6px 16px;margin-top:14px;padding-top:12px;border-top:1px solid var(--line);font-size:var(--t-sm)}
+.decision-manage .text-button{display:inline-flex;align-items:center;gap:6px}
+.recommendation .btn-ghost{margin-top:10px}
+.decision-filters .btn-secondary{margin-left:auto}
+.detail-grid .panel .decision-filters{margin-top:0}
+.detail-grid .panel .panel{box-shadow:none;border:0;padding:0;background:transparent}
+.chat-heading-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.backup-pick{cursor:pointer;display:inline-flex;align-items:center}
+.backup-confirm{margin-top:14px;padding:14px;border:1px solid var(--line-strong);border-radius:var(--r-card);display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+.backup-confirm p{flex:1 1 100%;margin:0}
+@media(max-width:700px){.decision-form-row{grid-template-columns:1fr}.decision-filters .btn-secondary{margin-left:0}}
