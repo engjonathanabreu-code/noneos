@@ -37,6 +37,19 @@ export async function exchangeCode(code:string, origin:string){
 
 const accessCache = new Map<string,{token:string;until:number}>();
 export class GoogleNotConnected extends Error {}
+export class GoogleApiError extends Error {constructor(public reason:string){super(reason);}}
+
+// Reads Google's error body, logs it (no tokens) and maps it: revoked/insufficient access means
+// reconnect; anything else keeps its reason so the screen can say what is wrong.
+async function googleFailure(tag:string, r:Response):Promise<never>{
+  const j = await r.json().catch(()=>({})) as {error?:string|{status?:string;message?:string;errors?:{reason?:string}[]};error_description?:string};
+  const e = j.error;
+  const reason = typeof e==='string' ? e : e?.errors?.[0]?.reason ?? e?.status ?? 'unknown';
+  const message = typeof e==='string' ? j.error_description ?? '' : e?.message ?? '';
+  console.error(`[google] ${tag} ${r.status} ${reason}: ${message.slice(0,300)}`);
+  if(r.status===401 || /invalid_grant|insufficientPermissions|ACCESS_TOKEN_SCOPE_INSUFFICIENT|authError/i.test(reason)) throw new GoogleNotConnected();
+  throw new GoogleApiError(reason);
+}
 
 async function accessToken(){
   const rt = await refreshToken();
@@ -46,8 +59,7 @@ async function accessToken(){
   if(hit && hit.until > Date.now()) return hit.token;
   const r = await fetch('https://oauth2.googleapis.com/token',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams({client_id:process.env.GOOGLE_CLIENT_ID!,client_secret:process.env.GOOGLE_CLIENT_SECRET!,refresh_token:rt,grant_type:'refresh_token'})});
   // invalid_grant: access was revoked in the Google account; treat as disconnected.
-  if(r.status === 400 || r.status === 401) throw new GoogleNotConnected();
-  if(!r.ok) throw new Error('refresh failed');
+  if(!r.ok) await googleFailure('refresh', r);
   const j = await r.json() as {access_token:string;expires_in:number};
   accessCache.set(id,{token:j.access_token,until:Date.now()+(j.expires_in-60)*1000});
   return j.access_token;
@@ -60,8 +72,7 @@ export async function listEvents(timeMin:string, timeMax:string):Promise<Calenda
   const token = await accessToken();
   const q = new URLSearchParams({timeMin,timeMax,singleEvents:'true',orderBy:'startTime',maxResults:'250'});
   const r = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events?'+q,{headers:{Authorization:'Bearer '+token},cache:'no-store'});
-  if(r.status === 401) throw new GoogleNotConnected();
-  if(!r.ok) throw new Error('list failed');
+  if(!r.ok) await googleFailure('list', r);
   const j = await r.json() as {items?:GoogleEvent[]};
   return (j.items ?? []).filter(e=>e.status !== 'cancelled').map(e=>({
     id:e.id,title:e.summary || '(sem título)',allDay:!!e.start.date,
@@ -75,8 +86,7 @@ export async function createAllDayEvent(title:string, date:string){
   const token = await accessToken();
   const next = new Date(date+'T12:00:00Z'); next.setUTCDate(next.getUTCDate()+1);
   const r = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events',{method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({summary:title,start:{date},end:{date:next.toISOString().slice(0,10)},description:'Criado pelo none OS a partir do checklist.'})});
-  if(r.status === 401) throw new GoogleNotConnected();
-  if(!r.ok) throw new Error('create failed');
+  if(!r.ok) await googleFailure('create', r);
   const e = await r.json() as GoogleEvent;
   return {id:e.id,link:e.htmlLink};
 }
@@ -95,8 +105,7 @@ export async function createEvent(e:NewEvent){
     end:e.allDay?{date:plusDay(endDate)}:{dateTime:`${endDate}T${e.endTime}:00`,timeZone:e.timeZone}
   };
   const r = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events',{method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify(body)});
-  if(r.status === 401) throw new GoogleNotConnected();
-  if(!r.ok) throw new Error('create failed');
+  if(!r.ok) await googleFailure('create', r);
   const g = await r.json() as GoogleEvent;
   return {id:g.id,link:g.htmlLink};
 }

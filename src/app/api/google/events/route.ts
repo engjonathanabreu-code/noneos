@@ -1,13 +1,19 @@
 import {NextRequest, NextResponse} from 'next/server';
 import {authenticated} from '@/lib/auth';
-import {createAllDayEvent, createEvent, googleConfigured, GoogleNotConnected, listEvents} from '@/lib/google';
+import {createAllDayEvent, createEvent, GoogleApiError, googleConfigured, GoogleNotConnected, listEvents} from '@/lib/google';
 
 function sameOrigin(req:NextRequest){try{return new URL(req.headers.get('origin')??'').host===req.headers.get('host');}catch{return false;}}
 const iso = (v:string|null) => v && !Number.isNaN(Date.parse(v)) ? new Date(v).toISOString() : null;
 
 function failure(e:unknown){
   if(e instanceof GoogleNotConnected) return NextResponse.json({status:'desconectado'},{status:409});
-  return NextResponse.json({error:'Não foi possível falar com o Google Agenda agora.'},{status:502});
+  const reason = e instanceof GoogleApiError ? e.reason : '';
+  if(!(e instanceof GoogleApiError)) console.error('[google] request failed:', (e as Error)?.message);
+  const error = /accessNotConfigured|SERVICE_DISABLED/i.test(reason) ? 'A API do Google Calendar está desativada no projeto do Google Cloud. Ative "Google Calendar API" no console do Google Cloud.'
+    : /invalid_client|unauthorized_client/i.test(reason) ? 'As credenciais do Google (GOOGLE_CLIENT_ID/SECRET) no servidor foram recusadas.'
+    : /rateLimit|quota/i.test(reason) ? 'O Google limitou as consultas agora. Tente em instantes.'
+    : 'Não foi possível falar com o Google Agenda agora.';
+  return NextResponse.json({error, motivo:reason||undefined},{status:502});
 }
 
 export async function GET(req:NextRequest){

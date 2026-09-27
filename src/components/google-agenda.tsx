@@ -8,14 +8,14 @@ export type AgendaState = 'loading'|'ok'|'desconectado'|'nao_configurado'|'erro'
 export function localDay(d:Date){return [d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-');}
 
 function useCalendarFeed(endpoint:string,from:Date,to:Date){
- const [state,setState]=useState<AgendaState>('loading');const [events,setEvents]=useState<CalendarEvent[]>([]);const [tick,setTick]=useState(0);
+ const [state,setState]=useState<AgendaState>('loading');const [events,setEvents]=useState<CalendarEvent[]>([]);const [tick,setTick]=useState(0);const [message,setMessage]=useState('');
  const range=from.toISOString()+'|'+to.toISOString();
  useEffect(()=>{let live=true;setState('loading');const [a,b]=range.split('|');
   fetch(endpoint+'?'+new URLSearchParams({from:a,to:b})).then(async r=>{const j=await r.json().catch(()=>({}));if(!live)return;
-   if(r.ok){setEvents(j.events);setState('ok');}else setState(j.status==='desconectado'||j.status==='nao_configurado'?j.status:'erro');
+   setMessage(r.ok?'':j.error??'');if(r.ok){setEvents(j.events);setState('ok');}else setState(j.status==='desconectado'||j.status==='nao_configurado'?j.status:'erro');
   }).catch(()=>{if(live)setState('erro');});return()=>{live=false;};},[endpoint,range,tick]);
  const reload=useCallback(()=>setTick(t=>t+1),[]);
- return {state,events,reload};
+ return {state,events,reload,message};
 }
 
 export const useGoogleEvents=(from:Date,to:Date)=>useCalendarFeed('/api/google/events',from,to);
@@ -40,13 +40,13 @@ export async function scheduleOnGoogle(title:string,date:string){
  return j.event as {id:string;link?:string};
 }
 
-export function GoogleConnection({state,onChange}:{state:AgendaState;onChange:()=>void}){
+export function GoogleConnection({state,onChange,message}:{state:AgendaState;onChange:()=>void;message?:string}){
  const [busy,setBusy]=useState(false);
  async function disconnect(){setBusy(true);try{await fetch('/api/google/connection',{method:'DELETE'});}finally{setBusy(false);onChange();}}
  if(state==='nao_configurado')return <p className="gcal-status">Google Agenda · aguardando credenciais do Google no servidor.</p>;
  if(state==='desconectado')return <p className="gcal-status"><span>Google Agenda · não conectado</span><a className="primary gcal-connect" href="/api/google/connect"><CalendarDays size={15}/>Conectar Google Agenda</a></p>;
  if(state==='ok')return <p className="gcal-status"><span><i className="gcal-dot"/>Google Agenda · conectado</span><button className="text-button" disabled={busy} onClick={disconnect}><Unplug size={14}/>Desconectar</button></p>;
- if(state==='erro')return <p className="gcal-status"><span>Google Agenda · indisponível agora</span><button className="text-button" onClick={onChange}><RefreshCw size={14}/>Tentar novamente</button></p>;
+ if(state==='erro')return <p className="gcal-status"><span>Google Agenda · {message||'indisponível agora'}</span><button className="text-button" onClick={onChange}><RefreshCw size={14}/>Tentar novamente</button></p>;
  return <p className="gcal-status">Google Agenda · verificando…</p>;
 }
 
@@ -54,7 +54,7 @@ const notices:Record<string,string>={conectado:'Google Agenda conectado.',cancel
 
 export function AgendaCard(){
  const [range]=useState(()=>{const a=new Date();a.setHours(0,0,0,0);const b=new Date(a);b.setDate(b.getDate()+8);return [a,b] as const;});
- const {state,events:google,reload}=useGoogleEvents(range[0],range[1]);const erp=useErpEvents(range[0],range[1]);const [notice,setNotice]=useState('');
+ const {state,events:google,reload,message}=useGoogleEvents(range[0],range[1]);const erp=useErpEvents(range[0],range[1]);const [notice,setNotice]=useState('');
  const events=[...(state==='ok'?google:[]),...(erp.state==='ok'?erp.events:[])].sort(byStart);const any=state==='ok'||erp.state==='ok';
  useEffect(()=>{const s=new URLSearchParams(location.search).get('google');if(s){setNotice(notices[s]??'');history.replaceState(null,'',location.pathname);}},[]);
  const days=Array.from({length:8},(_,i)=>{const d=new Date(range[0]);d.setDate(d.getDate()+i);return d;});
@@ -63,7 +63,7 @@ export function AgendaCard(){
   {notice&&<p role="status" className="gcal-notice">{notice}</p>}
   {any&&<div className="agenda-days">{byDay.map(({d,key,list})=><div className="agenda-day" key={key}><h3>{key===localDay(new Date())?'Hoje':d.toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'short'})}</h3>{list.length?list.map(e=><EventRow key={e.id+key} e={e}/>):<p className="agenda-empty">Nada na agenda hoje.</p>}</div>)}</div>}
   {state==='loading'&&erp.state==='loading'&&<p className="agenda-empty">Carregando agenda…</p>}
-  <GoogleConnection state={state} onChange={reload}/><ErpStatus state={erp.state} onRetry={erp.reload}/>
+  <GoogleConnection state={state} onChange={reload} message={message}/><ErpStatus state={erp.state} onRetry={erp.reload}/>
  </section>;
 }
 
