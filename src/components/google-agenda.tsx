@@ -6,16 +6,21 @@ import type {CalendarEvent} from '@/lib/google';
 export type AgendaState = 'loading'|'ok'|'desconectado'|'nao_configurado'|'erro';
 export function localDay(d:Date){return [d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-');}
 
-export function useGoogleEvents(from:Date,to:Date){
+function useCalendarFeed(endpoint:string,from:Date,to:Date){
  const [state,setState]=useState<AgendaState>('loading');const [events,setEvents]=useState<CalendarEvent[]>([]);const [tick,setTick]=useState(0);
  const range=from.toISOString()+'|'+to.toISOString();
  useEffect(()=>{let live=true;setState('loading');const [a,b]=range.split('|');
-  fetch('/api/google/events?'+new URLSearchParams({from:a,to:b})).then(async r=>{const j=await r.json().catch(()=>({}));if(!live)return;
+  fetch(endpoint+'?'+new URLSearchParams({from:a,to:b})).then(async r=>{const j=await r.json().catch(()=>({}));if(!live)return;
    if(r.ok){setEvents(j.events);setState('ok');}else setState(j.status==='desconectado'||j.status==='nao_configurado'?j.status:'erro');
-  }).catch(()=>{if(live)setState('erro');});return()=>{live=false;};},[range,tick]);
+  }).catch(()=>{if(live)setState('erro');});return()=>{live=false;};},[endpoint,range,tick]);
  const reload=useCallback(()=>setTick(t=>t+1),[]);
  return {state,events,reload};
 }
+
+export const useGoogleEvents=(from:Date,to:Date)=>useCalendarFeed('/api/google/events',from,to);
+// ERP Integral agenda (public events, goal/process deadlines, Radar), read-only.
+export const useErpEvents=(from:Date,to:Date)=>useCalendarFeed('/api/agenda-erp',from,to);
+export const byStart=(a:CalendarEvent,b:CalendarEvent)=>Date.parse(a.allDay?a.start+'T00:00:00':a.start)-Date.parse(b.allDay?b.start+'T00:00:00':b.start);
 
 // Days (YYYY-MM-DD, local) an event covers. All-day end dates are exclusive.
 export function eventDays(e:CalendarEvent){
@@ -48,18 +53,26 @@ const notices:Record<string,string>={conectado:'Google Agenda conectado.',cancel
 
 export function AgendaCard(){
  const [range]=useState(()=>{const a=new Date();a.setHours(0,0,0,0);const b=new Date(a);b.setDate(b.getDate()+8);return [a,b] as const;});
- const {state,events,reload}=useGoogleEvents(range[0],range[1]);const [notice,setNotice]=useState('');
+ const {state,events:google,reload}=useGoogleEvents(range[0],range[1]);const erp=useErpEvents(range[0],range[1]);const [notice,setNotice]=useState('');
+ const events=[...(state==='ok'?google:[]),...(erp.state==='ok'?erp.events:[])].sort(byStart);const any=state==='ok'||erp.state==='ok';
  useEffect(()=>{const s=new URLSearchParams(location.search).get('google');if(s){setNotice(notices[s]??'');history.replaceState(null,'',location.pathname);}},[]);
  const days=Array.from({length:8},(_,i)=>{const d=new Date(range[0]);d.setDate(d.getDate()+i);return d;});
  const byDay=days.map(d=>({d,key:localDay(d),list:events.filter(e=>eventDays(e).includes(localDay(d)))})).filter((x,i)=>i===0||x.list.length);
  return <section className="panel agenda-card" aria-label="Agenda"><div className="section-header"><div><p className="eyebrow">SUA AGENDA</p><h2>Hoje e próximos 7 dias</h2></div></div>
   {notice&&<p role="status" className="gcal-notice">{notice}</p>}
-  {state==='ok'&&<div className="agenda-days">{byDay.map(({d,key,list})=><div className="agenda-day" key={key}><h3>{key===localDay(new Date())?'Hoje':d.toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'short'})}</h3>{list.length?list.map(e=><EventRow key={e.id+key} e={e}/>):<p className="agenda-empty">Nada na agenda hoje.</p>}</div>)}</div>}
-  {state==='loading'&&<p className="agenda-empty">Carregando agenda…</p>}
-  <GoogleConnection state={state} onChange={reload}/>
+  {any&&<div className="agenda-days">{byDay.map(({d,key,list})=><div className="agenda-day" key={key}><h3>{key===localDay(new Date())?'Hoje':d.toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'short'})}</h3>{list.length?list.map(e=><EventRow key={e.id+key} e={e}/>):<p className="agenda-empty">Nada na agenda hoje.</p>}</div>)}</div>}
+  {state==='loading'&&erp.state==='loading'&&<p className="agenda-empty">Carregando agenda…</p>}
+  <GoogleConnection state={state} onChange={reload}/><ErpStatus state={erp.state} onRetry={erp.reload}/>
  </section>;
 }
 
+export function ErpStatus({state,onRetry}:{state:AgendaState;onRetry:()=>void}){
+ if(state==='ok')return <p className="gcal-status"><span><i className="gcal-dot erp"/>Agenda do ERP Integral · somente leitura</span></p>;
+ if(state==='erro')return <p className="gcal-status"><span>Agenda do ERP Integral · indisponível agora</span><button className="text-button" onClick={onRetry}><RefreshCw size={14}/>Tentar novamente</button></p>;
+ return null;
+}
+
 export function EventRow({e}:{e:CalendarEvent}){
- return <div className="agenda-event"><span className="agenda-time">{eventTime(e)}</span><div><strong>{e.title}</strong>{e.location&&<small><MapPin size={11}/>{e.location}</small>}</div>{e.link&&<a className="icon-button" href={e.link} target="_blank" rel="noopener noreferrer" aria-label={'Abrir '+e.title+' no Google Agenda'}><ExternalLink size={14}/></a>}</div>;
+ const erp=e.source==='erp';
+ return <div className={'agenda-event'+(erp?' is-erp':'')}><span className="agenda-time">{eventTime(e)}</span><div><strong>{e.title}</strong><small>{erp?<span className="agenda-source erp">ERP Integral{e.calendar?' · '+e.calendar:''}</span>:<span className="agenda-source">Google</span>}{e.location&&<><MapPin size={11}/>{e.location}</>}</small></div>{e.link&&<a className="icon-button" href={e.link} target="_blank" rel="noopener noreferrer" aria-label={'Abrir '+e.title+' no Google Agenda'}><ExternalLink size={14}/></a>}</div>;
 }

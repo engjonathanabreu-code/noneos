@@ -38,9 +38,26 @@ async function read(fonte:string,env:string):Promise<SourceResult>{
     const result:SourceResult = {fonte,status:'ok',gerado_em:r.gerado_em,indicadores:r.indicadores.map(i=>({...i,valor:Number(i.valor)}))};
     cache.set(env,{at:Date.now(),result});
     return result;
-  }catch{
-    // Never forward driver errors: they can contain host or role details.
+  }catch(e){
+    // Never forward driver errors: they can contain host or role details. Log only the code.
+    console.error(`[indicators] ${env} failed: ${errorCode(e)}`);
     return {fonte,status:'erro',mensagem:'Não foi possível ler a fonte agora.'};
+  }
+}
+
+function errorCode(e:unknown){const x=e as {code?:string;errno?:string;name?:string};return x?.code??x?.errno??x?.name??'unknown';}
+
+// ERP Integral agenda: public events, goal deadlines, process SLAs and Radar deadlines.
+export type ErpAgendaItem = {id:string;tipo:'evento'|'meta'|'processo'|'radar';titulo:string;inicio:string;fim:string;dia_todo:boolean;agenda:string|null};
+export async function erpAgenda(from:string,to:string):Promise<ErpAgendaItem[]|null>{
+  const url = process.env.NONE_DB_INTEGRAL_ERP;
+  if(!url) return null;
+  try{
+    const [row] = await client(url)`select none_os.agenda(${from}::timestamptz, ${to}::timestamptz) as r`;
+    return row.r as ErpAgendaItem[];
+  }catch(e){
+    console.error(`[erp-agenda] failed: ${errorCode(e)}`);
+    throw e;
   }
 }
 
