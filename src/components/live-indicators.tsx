@@ -2,6 +2,7 @@
 import {useEffect,useState} from 'react';
 import {Database,RefreshCw} from 'lucide-react';
 import type {Indicator,SourceResult} from '@/lib/indicators';
+import {useReports,latestIndicators,formatValue,period} from '@/components/company-reports';
 
 const brl=new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL',maximumFractionDigits:0});
 const int=new Intl.NumberFormat('pt-BR');
@@ -29,7 +30,7 @@ const pulse:{id:string;name:string;pick:string[]}[]=[
  {id:'reurb',name:'REURB.Software',pick:['Receita recorrente mensal (MRR)','Assinaturas ativas','Visitas ao site (30 dias)','Pré-cadastros']}
 ];
 export function PortfolioPulse({onOpen}:{onOpen:(id:string)=>void}){
- return <section className="portfolio-section"><div className="section-header"><h2>Indicadores das empresas</h2><small className="pulse-note">Dados reais · somente leitura</small></div><div className="pulse-grid">{pulse.map(p=><PulseCard key={p.id} {...p} onOpen={()=>onOpen(p.id)}/>)}</div></section>;
+ return <section className="portfolio-section"><div className="section-header"><h2>Indicadores das empresas</h2><small className="pulse-note">Dados reais · somente leitura</small></div><div className="pulse-grid">{pulse.map(p=><PulseCard key={p.id} {...p} onOpen={()=>onOpen(p.id)}/>)}<ReportPulseCard id="ct" name="CT Diego Silva" onOpen={()=>onOpen('ct')}/></div></section>;
 }
 function PulseCard({id,name,pick,onOpen}:{id:string;name:string;pick:string[];onOpen:()=>void}){
  const [data,setData]=useState<SourceResult[]|null>(null);const [failed,setFailed]=useState(false);
@@ -40,5 +41,14 @@ function PulseCard({id,name,pick,onOpen}:{id:string;name:string;pick:string[];on
   {!data&&!failed&&<p className="pulse-empty">Carregando…</p>}
   {shown.length>0&&<dl>{shown.map(i=><div key={i.rotulo}><dt>{i.rotulo}</dt><dd>{format(i)}</dd></div>)}</dl>}
   {problem&&<p className="pulse-empty">{failed?'Não foi possível carregar.':(data??[]).flatMap(s=>s.status==='ok'?[]:[s.fonte+': '+s.mensagem]).join(' · ')}</p>}
+ </article>;
+}
+
+// Companies without a database: headline numbers from reports imported through the none AI.
+function ReportPulseCard({id,name,onOpen}:{id:string;name:string;onOpen:()=>void}){
+ const latest=latestIndicators(useReports(id)).slice(-6);
+ return <article className="panel pulse-card"><header><strong>{name}</strong><button className="text-button" onClick={onOpen}>{latest.length?'Detalhes':'Importar relatório'}</button></header>
+  {latest.length?<dl>{latest.map(({i})=><div key={i.rotulo}><dt>{i.rotulo}</dt><dd>{formatValue(i)}</dd></div>)}</dl>:<p className="pulse-empty">Sem integração direta. Importe relatórios do Next Fit na página da empresa.</p>}
+  {latest.length>0&&<p className="pulse-empty">Fonte: relatórios importados · último: {period(latest[latest.length-1].r)}</p>}
  </article>;
 }
