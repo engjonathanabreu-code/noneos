@@ -107,7 +107,7 @@ export function WorkspaceSync({children}:{children:React.ReactNode}){
       if(m&&m.v===s){if(l!==undefined&&hash(l)!==m.h)toPush.push(chave);continue;}
       toPull.push(chave);
     }
-    let pulledChanges = false;
+    const pulled = new Set<string>();
     const backups = new Set<string>();
     const tooLarge:string[] = [];
     const backup = (chave:string)=>{
@@ -136,7 +136,7 @@ export function WorkspaceSync({children}:{children:React.ReactNode}){
       // Asked for but not on the server (removed there): forget the old version so it is saved again.
       const found = new Set((r.body.documentos ?? []).map(d=>d.chave));
       for(const k of keys) if(!found.has(k)) delete next[k];
-      if(incoming.size){applying.current=true;try{writeDocs(incoming);}finally{applying.current=false;}pulledChanges=true;}
+      if(incoming.size){applying.current=true;try{writeDocs(incoming);}finally{applying.current=false;}incoming.forEach((_,k)=>pulled.add(k));}
       localStorage.setItem(metaKey,JSON.stringify(next));
     };
     await pull(toPull);
@@ -154,7 +154,16 @@ export function WorkspaceSync({children}:{children:React.ReactNode}){
     setState('synced'); setAt(new Date().toISOString());
     if(tooLarge.some(k=>!warnedTooLarge.has(k))){tooLarge.forEach(k=>warnedTooLarge.add(k));setNotice('Uma auditoria ficou grande demais para sincronizar (anotações à mão). Ela continua salva neste navegador; exporte uma cópia em Conexões.');}
     if(backups.size) setNotice('Havia alterações diferentes neste navegador e em outro dispositivo. A versão do servidor foi aplicada e a cópia deste navegador foi guardada (Conexões → Exportar cópia).');
-    if(pulledChanges&&!initial){window.dispatchEvent(new Event('none-organizations'));setGeneration(g=>g+1);if(!backups.size)setNotice('Atualizado com alterações feitas em outro dispositivo.');}
+    if(pulled.size&&!initial){
+      // Screens that reload themselves get an event, so open forms and running AI requests survive;
+      // BrainStorm, checklists and agents keep their data in memory and are remounted.
+      const keys=[...pulled];
+      if(keys.some(k=>k==='organizacoes'||k.startsWith('logo:')))window.dispatchEvent(new Event('none-organizations'));
+      if(keys.includes('decisoes'))window.dispatchEvent(new Event('none-decisions'));
+      if(keys.some(k=>k.startsWith('auditoria:')))window.dispatchEvent(new Event('none-audits'));
+      if(keys.some(k=>k==='brainstorm'||k==='checklists'||k==='agentes'))setGeneration(g=>g+1);
+      if(!backups.size)setNotice('Atualizado com alterações feitas em outro dispositivo.');
+    }
   },[]);
 
   const run = useCallback((initial=false)=>{
