@@ -116,3 +116,16 @@
 /* Company logo in place of the initials mark (wide logos keep proportion) */
 .company-logo{height:44px;width:auto;max-width:150px;object-fit:contain;flex-shrink:0}
 .company-logo.small{height:28px;max-width:96px}
+.chat-panel{margin:0;max-width:960px}
+
+/* Connection status (Conexões) */
+.connections-summary{display:flex;flex-wrap:wrap;align-items:center;gap:var(--s-4);margin:var(--s-5) 0 var(--s-4);font-size:var(--t-sm);color:var(--muted)}
+.connections-summary span:first-child{display:inline-flex;align-items:center;gap:6px;color:var(--ink);font-weight:600}
+.connections-summary button{margin-left:auto}
+.badge.status-conectado{background:color-mix(in srgb,var(--ok) 12%,#fff);color:#166534}
+.badge.status-erro{background:color-mix(in srgb,var(--danger) 10%,#fff);color:var(--danger)}
+.badge.status-desconectado,.badge.status-nao_configurado{background:color-mix(in srgb,var(--warn) 12%,#fff);color:var(--warn)}
+.badge.status-manual{background:color-mix(in srgb,var(--info) 10%,#fff);color:var(--info)}
+.connector .connector-footer{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:var(--s-2)}
+.connector.is-conectado .stat-icon{color:var(--green);background:var(--green-soft)}
+.connector.is-previsto{opacity:.75}

@@ -1,7 +1,7 @@
 import {NextRequest, NextResponse} from 'next/server';
-import Anthropic from '@anthropic-ai/sdk';
 import {authenticated} from '@/lib/auth';
 import {aiConfigured, extractReport} from '@/lib/report-extract';
+import {aiErrorMessage} from '@/lib/claude';
 import {orgPattern} from '@/lib/reports-db';
 
 export const maxDuration = 120;
@@ -26,16 +26,7 @@ export async function POST(req:NextRequest){
     const result = await extractReport(b.kind==='pdf' ? {company,fileName,kind:'pdf',base64:b.data} : {company,fileName,kind:'text',text:b.data});
     return NextResponse.json({status:'ok',result});
   }catch(e){
-    if(e instanceof Anthropic.RateLimitError) return NextResponse.json({error:'A IA está ocupada. Tente em instantes.'},{status:429});
-    if(e instanceof Anthropic.AuthenticationError) return NextResponse.json({error:'Chave da IA inválida no servidor.'},{status:502});
-    if(e instanceof Anthropic.BadRequestError){
-      // The API message describes the request problem (never the report contents).
-      console.error('[relatorios] extract 400:', e.message.slice(0,500));
-      if(/not scoped to a workspace/i.test(e.message)) return NextResponse.json({error:'A chave da IA não está vinculada a um workspace. Crie a chave dentro de um workspace no console da Anthropic ou configure ANTHROPIC_WORKSPACE_ID na Vercel.'},{status:502});
-      if(/credit balance/i.test(e.message)) return NextResponse.json({error:'A conta da IA está sem créditos. Adicione créditos em console.anthropic.com → Billing.'},{status:402});
-      return NextResponse.json({error:'A IA não conseguiu ler este arquivo. Tente exportar em PDF ou Excel.'},{status:422});
-    }
-    console.error('[relatorios] extract failed:', e instanceof Anthropic.APIError ? e.status : (e as Error).message);
-    return NextResponse.json({error:'Não foi possível analisar o relatório agora.'},{status:502});
+    const {status,error} = aiErrorMessage(e);
+    return NextResponse.json({error},{status});
   }
 }

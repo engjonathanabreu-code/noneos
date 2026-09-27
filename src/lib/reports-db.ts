@@ -27,3 +27,5 @@ export async function removeReport(org:string, id:string){
 }
 
 export {errorCode};
+
+export async function pingReportsDb(){await sql()`select 1`;}

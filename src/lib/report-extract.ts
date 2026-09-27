@@ -2,6 +2,7 @@ import 'server-only';
 import Anthropic from '@anthropic-ai/sdk';
 import {betaZodOutputFormat} from '@anthropic-ai/sdk/helpers/beta/zod';
 import {z} from 'zod';
+import {aiConfigured, claude, MODEL, withFallback} from './claude';
 
 // Reads a report exported from a company's management system (e.g. Next Fit)
 // and returns aggregated indicators only. Personal data never leaves as output.
@@ -33,32 +34,21 @@ Regras:
 type Input = {company:string; fileName:string} & ({kind:'pdf'; base64:string} | {kind:'text'; text:string});
 
 export async function extractReport(input:Input):Promise<ReportExtraction>{
-  // Organization-level keys (not scoped to a workspace) must name the workspace on every call.
-  const workspace = process.env.ANTHROPIC_WORKSPACE_ID;
-  const client = new Anthropic(workspace ? {defaultHeaders:{'anthropic-workspace-id':workspace}} : {});
   const file:Anthropic.Beta.BetaContentBlockParam = input.kind==='pdf'
     ? {type:'document', source:{type:'base64', media_type:'application/pdf', data:input.base64}, title:input.fileName}
     : {type:'document', source:{type:'text', media_type:'text/plain', data:input.text}, title:input.fileName};
-  const request = {
-    model:'claude-opus-5',
+  const client = claude();
+  const response = await withFallback(extra=>client.beta.messages.parse({
+    model:MODEL,
     max_tokens:16000,
-    output_config:{effort:'medium' as const, format:betaZodOutputFormat(ReportExtraction)},
+    output_config:{effort:'medium', format:betaZodOutputFormat(ReportExtraction)},
     system,
-    messages:[{role:'user' as const, content:[file, {type:'text' as const, text:`Empresa: ${input.company}. Arquivo: ${input.fileName}. Extraia os indicadores deste relatório.`}]}]
-  };
-  let response;
-  try{
-    // Server-side refusal fallback (beta): another model answers if Opus 5 declines.
-    response = await client.beta.messages.parse({...request, betas:['server-side-fallback-2026-07-01'], fallbacks:'default'});
-  }catch(e){
-    // Accounts without the fallback beta get a 400; retry once without it.
-    if(!(e instanceof Anthropic.BadRequestError) || /credit balance|not scoped to a workspace/i.test(e.message)) throw e;
-    console.error('[relatorios] fallback request rejected, retrying without it:', e.message.slice(0,300));
-    response = await client.beta.messages.parse(request);
-  }
+    messages:[{role:'user', content:[file, {type:'text', text:`Empresa: ${input.company}. Arquivo: ${input.fileName}. Extraia os indicadores deste relatório.`}]}],
+    ...extra
+  }));
   if(response.stop_reason === 'refusal') throw new Error('refusal');
   if(!response.parsed_output) throw new Error('unparsed');
   return response.parsed_output;
 }
 
-export function aiConfigured(){return !!process.env.ANTHROPIC_API_KEY;}
+export {aiConfigured};
