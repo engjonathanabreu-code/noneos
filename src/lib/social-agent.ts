@@ -1,4 +1,4 @@
-import type {AgentProfile,Tone} from './agents';
+import type {AgentProfile,Tone} from './agent-profiles';
 
 export const socialProfile:AgentProfile={
  id:'social',name:'Redes Sociais',role:'Planeja conteúdo e prepara conversas no Instagram e LinkedIn.',

@@ -15,6 +15,6 @@ Na Vercel, importe o repositório, selecione Next.js, Node 22/24 e root director
 
 ## Estado atual
 Cadastros, notas, logos, checklists e configurações ficam no localStorage deste navegador/origem. Não sincronizam entre dispositivos. Exporte o backup em Conexões antes de mudar domínio: o novo domínio não verá o armazenamento do anterior. O ZIP contém código, não os dados do seu navegador.
-A IA e as integrações estão desconectadas. Não há conector Supabase executável, migração SQL, API de sincronização ou login Supabase implementados. O arquivo src/lib/whatsapp-connector.ts é somente um contrato para implementação futura.
+A IA (Claude, variável ANTHROPIC_API_KEY na Vercel) está ligada ao Perguntar à none, à leitura de relatórios e aos Agentes (rota /api/agentes: rascunhos para revisão; nada é enviado, publicado ou agendado). Indicadores das empresas vêm das bases Supabase somente leitura e a agenda do Google Calendar via OAuth. O estado de cada conexão aparece em Conexões. WhatsApp, Chatwoot, Gmail e redes sociais ainda não estão integrados; src/lib/whatsapp-connector.ts é somente um contrato.
 
 Leia docs/SUPABASE.md e docs/AUDITORIA-DISPOSITIVOS.md antes de ampliar o uso.

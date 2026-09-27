@@ -23,6 +23,22 @@ export async function withFallback<T>(run:(extra:{betas?:Anthropic.Beta.Anthropi
   }
 }
 
+// Live check of the key and workspace (reads model metadata, spends no tokens), cached for 10 minutes.
+let statusCache:{at:number; ok:boolean; name:string}|null = null;
+export async function aiStatus():Promise<{state:'conectado'|'nao_configurado'|'erro'; model?:string}>{
+  if(!aiConfigured()) return {state:'nao_configurado'};
+  if(!statusCache || Date.now()-statusCache.at >= 10*60*1000){
+    try{
+      const m = await claude().models.retrieve(MODEL);
+      statusCache = {at:Date.now(), ok:true, name:m.display_name};
+    }catch(e){
+      console.error('[claude] status check failed:', e instanceof Anthropic.APIError ? e.status : (e as Error)?.message);
+      statusCache = {at:Date.now(), ok:false, name:''};
+    }
+  }
+  return statusCache.ok ? {state:'conectado', model:statusCache.name} : {state:'erro'};
+}
+
 // Friendly message for API failures; never exposes raw errors to the page.
 export function aiErrorMessage(e:unknown):{status:number;error:string}{
   if(e instanceof Anthropic.RateLimitError) return {status:429,error:'A IA está ocupada. Tente em instantes.'};
