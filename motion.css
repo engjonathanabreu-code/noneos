@@ -1,0 +1,51 @@
+:root{--ease-none:cubic-bezier(.22,1,.36,1)}
+@keyframes none-enter{from{opacity:0;transform:translateY(9px)}to{opacity:1;transform:translateY(0)}}
+@keyframes none-dialog{from{opacity:0;transform:translateY(12px) scale(.98)}to{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes none-backdrop{from{opacity:0}to{opacity:1}}
+@keyframes none-toast{from{opacity:0;transform:translate(-50%,10px) scale(.98)}to{opacity:1;transform:translate(-50%,0) scale(1)}}
+@keyframes none-check{0%{transform:scale(.6);opacity:.3}65%{transform:scale(1.14);opacity:1}100%{transform:scale(1);opacity:1}}
+@keyframes none-select{from{box-shadow:inset 3px 0 #b5dccc}to{box-shadow:inset 0 0 transparent}}
+@keyframes none-thinking{0%,100%{opacity:.5}50%{opacity:1}}
+.view-transition{animation:none-enter 280ms var(--ease-none)}
+.shell{transition:grid-template-columns 280ms var(--ease-none)}
+button{transition:background-color 180ms ease,color 180ms ease,box-shadow 220ms ease,transform 180ms var(--ease-none),border-color 180ms ease}
+button:not(:disabled):active{transform:scale(.975)}
+.nav-item:active,.bs-note-item:active{transform:scale(.99)}
+.nav-item svg,.text-button svg,.outline svg,.primary svg,.company-card svg{transition:transform 220ms var(--ease-none)}
+.nav-item.active svg{animation:none-check 280ms var(--ease-none)}
+.company-grid>.company-card,.prepared-agents>.agent-card,.mini-companies>button{animation:none-enter 320ms var(--ease-none) backwards}
+.company-grid>:nth-child(2),.prepared-agents>:nth-child(2),.mini-companies>:nth-child(2){animation-delay:30ms}
+.company-grid>:nth-child(3),.prepared-agents>:nth-child(3),.mini-companies>:nth-child(3){animation-delay:60ms}
+.company-grid>:nth-child(4),.prepared-agents>:nth-child(4),.mini-companies>:nth-child(4){animation-delay:90ms}
+.company-grid>:nth-child(n+5),.prepared-agents>:nth-child(n+5),.mini-companies>:nth-child(n+5){animation-delay:120ms}
+.company-card,.agent-card,.stat-card,.mini-companies>button{transition:transform 220ms var(--ease-none),box-shadow 220ms ease,border-color 180ms ease}
+.modal[open]{animation:none-dialog 240ms var(--ease-none)}
+.modal::backdrop{animation:none-backdrop 180ms ease}
+.toast{animation:none-toast 260ms var(--ease-none)}
+.toast>svg,.agent-feedback>svg{animation:none-check 340ms var(--ease-none)}
+.agent-feedback,.message,.bs-message,.history-row,.bs-board-row,.bs-action-edit,.agent-output-heading,.bs-link-form,.bs-folder-form{animation:none-enter 220ms var(--ease-none)}
+.agent-output-empty,.agent-config,.agent-mission-grid,.agent-work-grid{animation:none-enter 260ms var(--ease-none)}
+.bs-note-item.selected{animation:none-select 300ms ease-out}
+.bs-linked-actions[open]>.bs-actions-scroll{animation:none-enter 180ms var(--ease-none)}
+.bs-rich-document li[data-checked=true] input{animation:none-check 220ms var(--ease-none)}
+.thinking{animation:none-thinking 1.3s ease-in-out 4}
+input,textarea,select{transition:border-color 180ms ease,box-shadow 180ms ease}
+@media(hover:hover) and (pointer:fine){
+ .company-card:hover,.stat-card:hover,.mini-companies>button:hover{transform:translateY(-3px);box-shadow:0 9px 23px #173e2510}
+ .agent-card:hover{transform:translateY(-2px);box-shadow:0 9px 23px #173e250c}
+ .nav-item:not(.active):hover svg{transform:translateX(2px)}
+ .text-button:hover svg,.outline:hover svg,.company-card:hover .company-card-bottom svg{transform:translateX(2px)}
+ .primary:hover{box-shadow:0 5px 14px #08785d25}
+}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}button:not(:disabled):active,.company-card:hover,.stat-card:hover,.agent-card:hover,.mini-companies>button:hover{transform:none!important}}
+/* One entrance per surface; avoid compounded movement and hover/press conflicts. */
+@keyframes none-surface{from{opacity:.35}to{opacity:1}}
+.view-transition{animation:none-surface 180ms ease-out}
+.company-grid>.company-card,.prepared-agents>.agent-card,.mini-companies>button{animation-duration:240ms}
+.agent-work-grid,.agent-mission-grid{animation:none}
+.shell{transition:grid-template-columns 240ms var(--ease-none)}
+.bs-status,.agent-feedback{overflow-wrap:anywhere}
+.chat-messages,.bs-messages,.bs-rich-scroll,.bs-note-items{overscroll-behavior:contain}
+@media(hover:hover) and (pointer:fine){.company-card:not(:disabled):active,.stat-card:not(:disabled):active,.mini-companies>button:not(:disabled):active{transform:translateY(-1px) scale(.99)}}
+@media(max-width:700px){.shell{transition:none}.bs-pane-list>.bs-list,.bs-pane-note>.bs-editor,.bs-pane-chat>.bs-chat{animation:none-surface 160ms ease-out}}
+@media(prefers-reduced-motion:reduce){.view-transition,.shell,.company-grid>.company-card,.prepared-agents>.agent-card,.mini-companies>button{animation:none!important;transition:none!important}.nav-item svg,.text-button svg,.outline svg,.company-card svg,.bs-ai-toggle{transform:none!important}}

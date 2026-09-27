@@ -1,0 +1,6 @@
+/* Touch, safe areas and keyboard-friendly controls. */
+html{-webkit-text-size-adjust:100%;scroll-padding-bottom:100px}
+img{max-width:100%}
+@media(pointer:coarse){button.icon-button,.bs-icon,.bs-format-toolbar button,.org-card>.org-edit,.check-card-tools .icon-button{min-width:44px;min-height:44px}.check-card-tools{flex-direction:row}.check-task-card{flex-wrap:wrap}.check-task-card label{min-width:140px}.bs-toolbar{overflow-x:auto}.bs-toolbar>*{flex-shrink:0}.bs-format-toolbar{min-height:54px}}
+@media(max-width:700px){input,select,textarea{font-size:16px!important}.sidebar,.collapsed .sidebar{height:calc(70px + env(safe-area-inset-bottom,0px))}.shell{padding-bottom:calc(84px + env(safe-area-inset-bottom,0px))}.bs-floating-ai{bottom:calc(86px + env(safe-area-inset-bottom,0px))}.toast{bottom:calc(90px + env(safe-area-inset-bottom,0px))}.content{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}.bs-workspace,.bs-workspace.bs-chat-hidden{height:calc(100dvh - 220px - env(safe-area-inset-bottom,0px))}.check-simple-filters,.check-list-heading,.section-header{min-width:0}.check-simple-filters select{width:100%}.org-form input[type=file]{max-width:100%}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}

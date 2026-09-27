@@ -1,0 +1,8 @@
+'use client';
+import { useState } from 'react';
+import { ArrowRight, LockKeyhole } from 'lucide-react';
+export function Login({ready}:{ready:boolean}) {
+ const [error,setError]=useState(''); const [busy,setBusy]=useState(false);
+ async function submit(e:React.FormEvent<HTMLFormElement>) { e.preventDefault(); setBusy(true); setError(''); const data=new FormData(e.currentTarget); try { const r=await fetch('/api/session',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:data.get('key')})}); if(r.ok) window.location.assign('/'); else { const body=await r.json(); setError(body.error); } } catch {setError('Não foi possível entrar. Tente novamente.');} finally{setBusy(false);} }
+ return <main className="login-page"><div className="login-brand">none<span>®</span></div><section className="login-card"><div className="lock-mark"><LockKeyhole size={24}/></div><p className="eyebrow">SEU ESPAÇO PRIVADO</p><h1>Clareza para<br/>o próximo passo.</h1><p>Suas empresas. Suas decisões.<br/>Tudo começa por aqui.</p><form onSubmit={submit}><label htmlFor="key">Chave de acesso</label><input id="key" name="key" type="password" autoComplete="current-password" required disabled={!ready} placeholder="Insira sua chave privada"/><button className="primary" disabled={busy||!ready}>{busy?'Entrando…':'Entrar na none'}<ArrowRight size={18}/></button><p role="alert" className="form-error">{ready?error:'Acesso bloqueado. Configure a chave privada no servidor para continuar.'}</p></form><small>Workspace privado · Acesso restrito</small></section><p className="login-footer">Um lugar para enxergar o todo.</p></main>;
+}
