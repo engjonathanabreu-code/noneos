@@ -81,6 +81,26 @@ export async function createAllDayEvent(title:string, date:string){
   return {id:e.id,link:e.htmlLink};
 }
 
+export type NewEvent = {title:string;allDay:boolean;date:string;startTime?:string;endTime?:string;endDate?:string;timeZone:string;location?:string;description?:string};
+
+// Event created from the none OS agenda. Timed events use the browser's time zone.
+export async function createEvent(e:NewEvent){
+  const token = await accessToken();
+  const plusDay = (d:string)=>{const n=new Date(d+'T12:00:00Z');n.setUTCDate(n.getUTCDate()+1);return n.toISOString().slice(0,10);};
+  const endDate = e.endDate && e.endDate>=e.date ? e.endDate : e.date;
+  const body = {
+    summary:e.title, location:e.location||undefined,
+    description:[e.description, 'Criado pelo none OS.'].filter(Boolean).join('\n\n'),
+    start:e.allDay?{date:e.date}:{dateTime:`${e.date}T${e.startTime}:00`,timeZone:e.timeZone},
+    end:e.allDay?{date:plusDay(endDate)}:{dateTime:`${endDate}T${e.endTime}:00`,timeZone:e.timeZone}
+  };
+  const r = await fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events',{method:'POST',headers:{Authorization:'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify(body)});
+  if(r.status === 401) throw new GoogleNotConnected();
+  if(!r.ok) throw new Error('create failed');
+  const g = await r.json() as GoogleEvent;
+  return {id:g.id,link:g.htmlLink};
+}
+
 export async function revoke(){
   const rt = await refreshToken();
   if(rt) await fetch('https://oauth2.googleapis.com/revoke?token='+encodeURIComponent(rt),{method:'POST'}).catch(()=>{});

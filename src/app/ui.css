@@ -156,3 +156,11 @@
 .backup-confirm{margin-top:14px;padding:14px;border:1px solid var(--line-strong);border-radius:var(--r-card);display:flex;flex-wrap:wrap;align-items:center;gap:10px}
 .backup-confirm p{flex:1 1 100%;margin:0}
 @media(max-width:700px){.decision-form-row{grid-template-columns:1fr}.decision-filters .btn-secondary{margin-left:0}}
+
+/* New calendar event */
+.agenda-card .section-header{align-items:flex-start;gap:12px}
+.event-allday{display:inline-flex;align-items:center;gap:8px;font-size:var(--t-sm)}
+.event-row{grid-template-columns:1.3fr 1fr 1.3fr 1fr}
+.event-done p{display:block}
+.event-done .decision-actions a{display:inline-flex;align-items:center;gap:6px;text-decoration:none}
+@media(max-width:700px){.event-row{grid-template-columns:1fr 1fr}}

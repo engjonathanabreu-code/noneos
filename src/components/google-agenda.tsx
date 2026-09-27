@@ -2,6 +2,7 @@
 import {useCallback,useEffect,useState} from 'react';
 import {CalendarDays,ExternalLink,MapPin,RefreshCw,Unplug} from 'lucide-react';
 import type {CalendarEvent} from '@/lib/google';
+import {NewEventButton} from '@/components/new-event';
 
 export type AgendaState = 'loading'|'ok'|'desconectado'|'nao_configurado'|'erro';
 export function localDay(d:Date){return [d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-');}
@@ -18,7 +19,7 @@ function useCalendarFeed(endpoint:string,from:Date,to:Date){
 }
 
 export const useGoogleEvents=(from:Date,to:Date)=>useCalendarFeed('/api/google/events',from,to);
-// ERP Integral agenda (public events, goal/process deadlines, Radar), read-only.
+// ERP Integral agenda (only the partner's own events, goals and processes), read-only.
 export const useErpEvents=(from:Date,to:Date)=>useCalendarFeed('/api/agenda-erp',from,to);
 export const byStart=(a:CalendarEvent,b:CalendarEvent)=>Date.parse(a.allDay?a.start+'T00:00:00':a.start)-Date.parse(b.allDay?b.start+'T00:00:00':b.start);
 
@@ -58,7 +59,7 @@ export function AgendaCard(){
  useEffect(()=>{const s=new URLSearchParams(location.search).get('google');if(s){setNotice(notices[s]??'');history.replaceState(null,'',location.pathname);}},[]);
  const days=Array.from({length:8},(_,i)=>{const d=new Date(range[0]);d.setDate(d.getDate()+i);return d;});
  const byDay=days.map(d=>({d,key:localDay(d),list:events.filter(e=>eventDays(e).includes(localDay(d)))})).filter((x,i)=>i===0||x.list.length);
- return <section className="panel agenda-card" aria-label="Agenda"><div className="section-header"><div><p className="eyebrow">SUA AGENDA</p><h2>Hoje e próximos 7 dias</h2></div></div>
+ return <section className="panel agenda-card" aria-label="Agenda"><div className="section-header"><div><p className="eyebrow">SUA AGENDA</p><h2>Hoje e próximos 7 dias</h2></div>{state!=='nao_configurado'?<NewEventButton google={state} onCreated={reload}/>:null}</div>
   {notice&&<p role="status" className="gcal-notice">{notice}</p>}
   {any&&<div className="agenda-days">{byDay.map(({d,key,list})=><div className="agenda-day" key={key}><h3>{key===localDay(new Date())?'Hoje':d.toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'short'})}</h3>{list.length?list.map(e=><EventRow key={e.id+key} e={e}/>):<p className="agenda-empty">Nada na agenda hoje.</p>}</div>)}</div>}
   {state==='loading'&&erp.state==='loading'&&<p className="agenda-empty">Carregando agenda…</p>}
