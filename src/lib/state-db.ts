@@ -6,7 +6,7 @@ import {auditSummary, isAudit} from './audit';
 // Workspace documents (organizations, logos, BrainStorm, checklists, agents, decisions, audits) kept in
 // none_os.documentos_estado so every device sees the same data. Each save carries the version
 // it was based on; the database refuses stale writes and archives the previous version.
-export const stateKeyPattern = /^(organizacoes|brainstorm|checklists|agentes|decisoes|logo:(integral|mcl|reurb|ct|bergamota|vidas|org-[a-f0-9-]{36})|auditoria:[a-f0-9-]{36})$/;
+export const stateKeyPattern = /^(organizacoes|brainstorm|checklists|agentes|decisoes|eventos|logo:(integral|mcl|reurb|ct|bergamota|vidas|org-[a-f0-9-]{36})|auditoria:[a-f0-9-]{36})$/;
 export const stateConfigured = reportsConfigured;
 export class VersionConflict extends Error {}
 

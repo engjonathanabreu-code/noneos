@@ -495,3 +495,29 @@
 }
 .cal-title,.ckl-period strong{text-transform:none!important}
 .cal-title::first-letter,.ckl-period strong::first-letter{text-transform:uppercase}
+
+/* Company colors on calendar events and checklist palette */
+.cal-chip{border:0;border-left:3px solid #8a968d;background:#eef1ee;color:var(--ink);cursor:pointer;text-align:left;width:100%;font:inherit;font-size:.7rem}
+.cal-chip:hover{filter:brightness(.96)}
+.cal-chip em{font-style:normal;font-size:.58rem;font-weight:700;opacity:.6;margin-left:auto;padding-left:4px}
+.cal-event{border:0;border-left:3px solid #8a968d;background:#eef1ee;color:var(--ink);cursor:pointer;text-align:left;display:flex;flex-direction:column;font:inherit;font-size:.72rem}
+.cal-event:hover{filter:brightness(.96);z-index:4}
+.cal-event b,.cal-event small{display:block;max-width:100%}
+.cal-legend-note{margin-left:auto;font-style:italic}
+.event-company{display:flex;align-items:center;gap:8px}
+.event-company i{width:14px;height:14px;border-radius:50%;flex-shrink:0}
+.event-company select{flex:1;min-width:0}
+.cal-event-title{display:flex;align-items:center;gap:10px}
+.cal-event-title i{width:14px;height:14px;border-radius:4px;flex-shrink:0}
+.cal-event-when{display:flex;align-items:center;gap:4px;margin:2px 0;color:var(--muted);font-size:var(--t-sm);text-transform:none}
+.cal-event-when::first-letter{text-transform:uppercase}
+.cal-list-row{display:flex;gap:12px;align-items:flex-start;width:100%;text-align:left;border:0;border-left:3px solid #8a968d;background:#fff;padding:9px 10px;margin:4px 0;border-radius:8px;cursor:pointer;font:inherit;color:var(--ink)}
+.cal-list-row:hover{background:#f6f8f6}
+.cal-list-main{display:flex;flex-direction:column;min-width:0}
+.cal-list-main small{color:var(--muted);font-size:.75rem}
+button.ckl-dot{width:14px;height:14px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px var(--line-strong);padding:0;cursor:pointer;background:var(--c);flex-shrink:0}
+button.ckl-dot:hover{transform:scale(1.15)}
+.ckl-palette{display:flex;flex-wrap:wrap;gap:6px;padding:10px 12px;border-bottom:1px solid var(--line);background:#fbfcfb}
+.ckl-palette button{width:24px;height:24px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px #0000001f;cursor:pointer;display:grid;place-items:center;color:#fff;padding:0}
+.ckl-palette button[aria-pressed=true]{box-shadow:0 0 0 2px var(--ink)}
+@media(max-width:700px){.cal-legend-note{margin-left:0;flex-basis:100%}.cal-chip em{display:none}}

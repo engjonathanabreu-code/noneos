@@ -65,8 +65,9 @@ async function accessToken(){
   return j.access_token;
 }
 
-export type CalendarEvent = {id:string;title:string;start:string;end:string;allDay:boolean;link?:string;location?:string;source?:'google'|'erp';kind?:string;calendar?:string};
-type GoogleEvent = {id:string;status?:string;summary?:string;htmlLink?:string;location?:string;start:{date?:string;dateTime?:string};end:{date?:string;dateTime?:string}};
+// series: id shared by all occurrences of a recurring Google event.
+export type CalendarEvent = {id:string;title:string;start:string;end:string;allDay:boolean;link?:string;location?:string;source?:'google'|'erp';kind?:string;calendar?:string;series?:string};
+type GoogleEvent = {id:string;recurringEventId?:string;status?:string;summary?:string;htmlLink?:string;location?:string;start:{date?:string;dateTime?:string};end:{date?:string;dateTime?:string}};
 
 export async function listEvents(timeMin:string, timeMax:string):Promise<CalendarEvent[]>{
   const token = await accessToken();
@@ -77,7 +78,7 @@ export async function listEvents(timeMin:string, timeMax:string):Promise<Calenda
   return (j.items ?? []).filter(e=>e.status !== 'cancelled').map(e=>({
     id:e.id,title:e.summary || '(sem título)',allDay:!!e.start.date,
     start:e.start.dateTime ?? e.start.date!,end:e.end.dateTime ?? e.end.date!,
-    link:e.htmlLink,location:e.location,source:'google' as const
+    link:e.htmlLink,location:e.location,source:'google' as const,series:e.recurringEventId
   }));
 }
 

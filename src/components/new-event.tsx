@@ -2,6 +2,7 @@
 import {useEffect,useRef,useState} from 'react';
 import {CalendarPlus,Check,Download,ExternalLink,X} from 'lucide-react';
 import {localDay,type AgendaState} from '@/components/google-agenda';
+import {useEntities,useEventLinks} from '@/lib/colors';
 
 type Draft = {title:string;allDay:boolean;date:string;endDate:string;startTime:string;endTime:string;location:string;description:string};
 
@@ -28,7 +29,7 @@ function downloadIcs(d:Draft){
   setTimeout(()=>URL.revokeObjectURL(url),1500);
 }
 
-export type EventPreset = {title?:string;allDay?:boolean;date?:string;startTime?:string};
+export type EventPreset = {title?:string;allDay?:boolean;date?:string;startTime?:string;company?:string};
 // Opens pre-filled when called from a calendar slot or a checklist item.
 export function NewEventDialog({google,onClose,onCreated,preset}:{google:AgendaState;onClose:()=>void;onCreated:()=>void;preset?:EventPreset}){
   const ref=useRef<HTMLDialogElement>(null);
@@ -37,14 +38,17 @@ export function NewEventDialog({google,onClose,onCreated,preset}:{google:AgendaS
   const [error,setError]=useState('');
   const [done,setDone]=useState<{link?:string;draft:Draft}|null>(null);
   useEffect(()=>{const el=ref.current;el?.showModal();return()=>el?.close();},[]);
+  const {entities,colorOf}=useEntities();const {save:saveLink}=useEventLinks();
+  const [company,setCompany]=useState(preset?.company??'');
   const valid=d.title.trim()&&d.date&&d.endDate>=d.date&&(d.allDay||(d.startTime&&d.endTime&&d.endDate+d.endTime>d.date+d.startTime));
   const connected=google==='ok';
   async function create(){
     if(!valid||busy)return;setBusy(true);setError('');
     try{
       const r=await fetch('/api/google/events',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...d,title:d.title.trim(),timeZone:Intl.DateTimeFormat().resolvedOptions().timeZone})});
-      const j=await r.json().catch(()=>({})) as {event?:{link?:string};error?:string;status?:string};
+      const j=await r.json().catch(()=>({})) as {event?:{id?:string;link?:string};error?:string;status?:string};
       if(!r.ok){setError(j.status==='desconectado'?'O Google Agenda foi desconectado. Conecte novamente para criar o evento.':j.error??'Não foi possível criar o evento.');return;}
+      if(j.event?.id&&company)saveLink({['google:'+j.event.id]:{company,by:'socio'}});
       setDone({link:j.event?.link,draft:{...d,title:d.title.trim()}});onCreated();
     }catch{setError('Sem conexão com o servidor. Tente novamente.');}
     finally{setBusy(false);}
@@ -59,6 +63,7 @@ export function NewEventDialog({google,onClose,onCreated,preset}:{google:AgendaS
       <p className="source-note">Use “Adicionar ao Calendário da Apple” só se a conta Google não estiver no aparelho; caso contrário o evento aparecerá duplicado.</p>
     </div>:<form className="decision-form" onSubmit={e=>{e.preventDefault();void create();}}>
       <label className="field-label decision-field">Título<input required maxLength={300} value={d.title} onChange={e=>set({title:e.target.value})} placeholder="Ex.: Reunião com a MCL"/></label>
+      <label className="field-label decision-field">Empresa <span>(define a cor na agenda)</span><span className="event-company"><i style={{background:colorOf(company||null)}}/><select value={company} onChange={e=>setCompany(e.target.value)}><option value="">A IA reconhece pelo título</option>{entities.map(x=><option key={x.id} value={x.id}>{x.name}</option>)}</select></span></label>
       <label className="event-allday"><input type="checkbox" checked={d.allDay} onChange={e=>set({allDay:e.target.checked})}/>Dia inteiro</label>
       <div className="decision-form-row event-row">
         <label className="field-label decision-field">Início<input type="date" required value={d.date} onChange={e=>set({date:e.target.value})}/></label>

@@ -11,7 +11,7 @@ const SyncContext = createContext<{state:SyncState;at:string;syncNow:()=>Promise
 export function useWorkspaceSync(){return useContext(SyncContext);}
 export const syncLabel:Record<SyncState,string> = {loading:'Sincronizando…',synced:'Sincronizado entre dispositivos',saving:'Salvando…',offline:'Sem conexão · salvo neste navegador',local:'Salvo neste navegador'};
 
-const simpleKeys:Record<string,string> = {brainstorm:'none-brainstorm-v1',checklists:'none-checklists-v1',agentes:'none-agents-v1',decisoes:'none-decisions-v1'};
+const simpleKeys:Record<string,string> = {brainstorm:'none-brainstorm-v1',checklists:'none-checklists-v1',agentes:'none-agents-v1',decisoes:'none-decisions-v1',eventos:'none-event-links-v1'};
 const orgKey = 'none-organizations-v1';
 const auditKey = 'none-auditorias-v1';
 const managed = new Set([orgKey,auditKey,...Object.values(simpleKeys)]);
@@ -160,6 +160,8 @@ export function WorkspaceSync({children}:{children:React.ReactNode}){
       const keys=[...pulled];
       if(keys.some(k=>k==='organizacoes'||k.startsWith('logo:')))window.dispatchEvent(new Event('none-organizations'));
       if(keys.includes('decisoes'))window.dispatchEvent(new Event('none-decisions'));
+      if(keys.includes('eventos'))window.dispatchEvent(new Event('none-event-links'));
+      if(keys.includes('checklists'))window.dispatchEvent(new Event('none-colors'));
       if(keys.some(k=>k.startsWith('auditoria:')))window.dispatchEvent(new Event('none-audits'));
       if(keys.some(k=>k==='brainstorm'||k==='checklists'||k==='agentes'))setGeneration(g=>g+1);
       if(!backups.size)setNotice('Atualizado com alterações feitas em outro dispositivo.');

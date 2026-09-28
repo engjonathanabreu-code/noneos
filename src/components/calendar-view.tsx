@@ -1,9 +1,15 @@
 'use client';
-import {useEffect,useMemo,useRef,useState} from 'react';
-import {CalendarPlus,ChevronLeft,ChevronRight} from 'lucide-react';
+import {createContext,useContext,useEffect,useMemo,useRef,useState} from 'react';
+import {CalendarPlus,ChevronLeft,ChevronRight,ExternalLink,MapPin,X} from 'lucide-react';
 import type {CalendarEvent} from '@/lib/google';
-import {useGoogleEvents,useErpEvents,eventDays,eventTime,byStart,localDay,EventRow,GoogleConnection,ErpStatus} from '@/components/google-agenda';
+import {useGoogleEvents,useErpEvents,eventDays,eventTime,byStart,localDay,GoogleConnection,ErpStatus} from '@/components/google-agenda';
 import {NewEventDialog,type EventPreset} from '@/components/new-event';
+import {useOrganizations} from '@/lib/organizations';
+import {eventKey,useEntities,useEventLinks} from '@/lib/colors';
+
+// Each event takes the color of its company (chosen by the partner or recognized by the AI).
+const Cal = createContext<{colorOf:(e:CalendarEvent)=>string;companyOf:(e:CalendarEvent)=>string|undefined;open:(e:CalendarEvent)=>void}>({colorOf:()=>'#8a968d',companyOf:()=>undefined,open:()=>{}});
+const tint = (c:string) => ({background:c+'22',borderLeftColor:c});
 
 // Calendar with day and week (hour grid), month (one line per event) and list views.
 // Sources: Google Agenda (read/write) and the partner's ERP Integral agenda (read-only).
@@ -43,10 +49,9 @@ function layoutDay(events:CalendarEvent[],day:Date){
 }
 
 function EventChip({e,compact=false}:{e:CalendarEvent;compact?:boolean}){
-  const cls=`cal-chip ${e.source==='erp'?'is-erp':'is-google'}`;
-  const label=`${e.allDay?'Dia todo':eventTime(e)} · ${e.title}${e.calendar?' · '+e.calendar:''}${e.location?' · '+e.location:''}`;
-  const inner=<>{!e.allDay&&!compact?<b>{eventTime(e)}</b>:null}<span>{e.title}</span></>;
-  return e.link?<a className={cls} href={e.link} target="_blank" rel="noopener noreferrer" title={label}>{inner}</a>:<span className={cls} title={label}>{inner}</span>;
+  const {colorOf,companyOf,open}=useContext(Cal);
+  const label=`${e.allDay?'Dia todo':eventTime(e)} · ${e.title}${companyOf(e)?' · '+companyOf(e):''}${e.location?' · '+e.location:''}`;
+  return <button className="cal-chip" style={tint(colorOf(e))} title={label} onClick={()=>open(e)}>{!e.allDay&&!compact?<b>{eventTime(e)}</b>:null}<span>{e.title}</span>{e.source==='erp'?<em>ERP</em>:null}</button>;
 }
 
 export function CalendarPanel(){
@@ -56,6 +61,29 @@ export function CalendarPanel(){
   const google=useGoogleEvents(from,to);const erp=useErpEvents(from,to);
   const events=useMemo(()=>[...(google.state==='ok'?google.events:[]),...(erp.state==='ok'?erp.events:[])].sort(byStart),[google.state,google.events,erp.state,erp.events]);
   const [preset,setPreset]=useState<EventPreset|null>(null);
+  const [opened,setOpened]=useState<CalendarEvent|null>(null);
+  const {entities,colorOf:entityColor,nameOf}=useEntities();
+  const orgs=useOrganizations();
+  const {links,save:saveLinks}=useEventLinks();
+  const companyId=(e:CalendarEvent)=>links[eventKey(e)]?.company??undefined;
+  const ctx={colorOf:(e:CalendarEvent)=>entityColor(companyId(e)??null),companyOf:(e:CalendarEvent)=>nameOf(companyId(e)),open:setOpened};
+  // Ask the AI about events never classified (once per event or recurring series).
+  const tried=useRef(new Set<string>());
+  useEffect(()=>{
+    if(!orgs.ready)return;
+    const pending=events.filter(e=>{const k=eventKey(e);return !(k in links)&&!tried.current.has(k);});
+    const unique=[...new Map(pending.map(e=>[eventKey(e),e])).values()].slice(0,40);
+    if(!unique.length)return;
+    unique.forEach(e=>tried.current.add(eventKey(e)));
+    fetch('/api/agenda/classificar',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+      companies:orgs.items.map(o=>({id:o.id,name:o.name,sector:o.sector,description:o.description})),
+      events:unique.map(e=>({key:eventKey(e),title:e.title,location:e.location,calendar:e.calendar,source:e.source,start:e.start}))
+    })}).then(r=>r.ok?r.json():null).then((j:{result?:Record<string,string|null>}|null)=>{
+      if(!j?.result)return;
+      saveLinks(Object.fromEntries(Object.entries(j.result).map(([k,c])=>[k,{company:c,by:'ia' as const}])));
+    }).catch(()=>{});
+  },[events,links,orgs.ready]); // eslint-disable-line react-hooks/exhaustive-deps
+  const legend=entities.filter(x=>events.some(e=>companyId(e)===x.id));
   const [now,setNow]=useState(()=>new Date());
   const [notice,setNotice]=useState('');
   useEffect(()=>{const s=new URLSearchParams(location.search).get('google');if(s){setNotice(oauthNotices[s]??'');history.replaceState(null,'',location.pathname+location.hash);}},[]);
@@ -66,7 +94,7 @@ export function CalendarPanel(){
     :`${from.toLocaleDateString('pt-BR',{day:'numeric',month:'short'})} – ${addDays(to,-1).toLocaleDateString('pt-BR',{day:'numeric',month:'short',year:'numeric'})}`;
   const canCreate=google.state==='ok'||google.state==='desconectado'||google.state==='erro';
   const reload=()=>{google.reload();erp.reload();};
-  return <section className="panel cal-panel" aria-label="Agenda">
+  return <Cal.Provider value={ctx}><section className="panel cal-panel" aria-label="Agenda">
     <div className="cal-head">
       <div><p className="eyebrow">SUA AGENDA</p><h2 className="cal-title">{title}</h2></div>
       <div className="cal-controls">
@@ -81,10 +109,29 @@ export function CalendarPanel(){
     {mode==='semana'&&<TimeGrid days={Array.from({length:7},(_,i)=>addDays(from,i))} events={events} now={now} onSlot={(d,t)=>canCreate&&setPreset({date:localDay(d),startTime:t})} onDay={d=>{setAnchor(d);setMode('dia');}}/>}
     {mode==='mes'&&<MonthGrid from={from} month={anchor.getMonth()} events={events} now={now} onDay={d=>{setAnchor(d);setMode('dia');}}/>}
     {mode==='lista'&&<ListView from={from} events={events} now={now}/>}
-    <div className="cal-legend"><span><i className="is-google"/>Google Agenda</span><span><i className="is-erp"/>ERP Integral · somente leitura</span></div>
+    <div className="cal-legend">{legend.map(x=><span key={x.id}><i style={{background:x.color}}/>{x.name}</span>)}<span><i style={{background:'#8a968d'}}/>Sem empresa</span><span className="cal-legend-note">Cores do checklist · clique no evento para ajustar a empresa</span></div>
     <GoogleConnection state={google.state} onChange={reload} message={google.message}/><ErpStatus state={erp.state} onRetry={erp.reload}/>
     {preset?<NewEventDialog google={google.state} preset={preset} onClose={()=>setPreset(null)} onCreated={reload}/>:null}
-  </section>;
+    {opened?<EventDialog e={opened} company={companyId(opened)} by={links[eventKey(opened)]?.by} entities={entities} onClose={()=>setOpened(null)} onCompany={c=>{saveLinks({[eventKey(opened)]:{company:c,by:'socio'}});}}/>:null}
+  </section></Cal.Provider>;
+}
+
+function EventDialog({e,company,by,entities,onClose,onCompany}:{e:CalendarEvent;company?:string;by?:'socio'|'ia';entities:{id:string;name:string;color:string}[];onClose:()=>void;onCompany:(c:string|null)=>void}){
+  const ref=useRef<HTMLDialogElement>(null);
+  useEffect(()=>{const d=ref.current;d?.showModal();return()=>d?.close();},[]);
+  const when=e.allDay?new Date(e.start+'T12:00:00').toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'})+' · dia todo'
+    :new Date(e.start).toLocaleString('pt-BR',{weekday:'long',day:'numeric',month:'long',hour:'2-digit',minute:'2-digit'})+' – '+new Date(e.end).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+  const color=entities.find(x=>x.id===company)?.color??'#8a968d';
+  return <dialog ref={ref} className="modal" aria-labelledby="cal-event-title" onCancel={ev=>{ev.preventDefault();onClose();}} onClick={ev=>{if(ev.target===ev.currentTarget)onClose();}}>
+    <div className="modal-heading"><span className="eyebrow">{e.source==='erp'?'ERP INTEGRAL · SOMENTE LEITURA':'GOOGLE AGENDA'}</span><button className="icon-button" onClick={onClose} aria-label="Fechar"><X size={20}/></button></div>
+    <h2 id="cal-event-title" className="cal-event-title"><i style={{background:color}}/>{e.title}</h2>
+    <p className="cal-event-when">{when}</p>
+    {e.location?<p className="cal-event-when"><MapPin size={13}/> {e.location}</p>:null}
+    {e.calendar?<p className="cal-event-when">Agenda: {e.calendar}</p>:null}
+    <label className="field-label decision-field">Empresa<span className="event-company"><i style={{background:color}}/><select value={company??''} onChange={ev=>onCompany(ev.target.value||null)}><option value="">Sem empresa</option>{entities.map(x=><option key={x.id} value={x.id}>{x.name}</option>)}</select></span></label>
+    <p className="source-note">{company?(by==='ia'?'Reconhecida pela IA. Corrija se estiver errada: sua escolha prevalece.':'Definida por você.'):'Sem empresa definida.'}{e.series?' Vale para todas as repetições deste evento.':''}</p>
+    <div className="decision-actions">{e.link?<a className="outline" href={e.link} target="_blank" rel="noopener noreferrer"><ExternalLink size={15}/>Abrir no Google Agenda</a>:null}<button className="primary" onClick={onClose}>Concluir</button></div>
+  </dialog>;
 }
 
 function TimeGrid({days,events,now,onSlot,onDay}:{days:Date[];events:CalendarEvent[];now:Date;onSlot:(d:Date,time:string)=>void;onDay?:(d:Date)=>void}){
@@ -102,14 +149,19 @@ function TimeGrid({days,events,now,onSlot,onDay}:{days:Date[];events:CalendarEve
         <div className="cal-hours">{Array.from({length:24},(_,h)=><span key={h} style={{top:h*HOUR}}>{h?`${String(h).padStart(2,'0')}:00`:''}</span>)}</div>
         {days.map(d=>{const placed=layoutDay(events,d);const today=sameDay(d,now);return <div key={localDay(d)} className={`cal-col${today?' is-today':''}`} onClick={ev=>{if(ev.target!==ev.currentTarget)return;const y=ev.nativeEvent.offsetY;const h=Math.min(23,Math.floor(y/HOUR));const m=(y%HOUR)>=HOUR/2?30:0;onSlot(d,`${String(h).padStart(2,'0')}:${m?'30':'00'}`);}}>
           {Array.from({length:24},(_,h)=><i key={h} className="cal-line" style={{top:h*HOUR}}/>)}
-          {placed.map(p=><div key={p.e.id} className={`cal-event ${p.e.source==='erp'?'is-erp':'is-google'}`} style={{top:p.top,height:p.height,left:`calc(${100*p.col/p.cols}% + 2px)`,width:`calc(${100/p.cols}% - 4px)`}} title={`${eventTime(p.e)} · ${p.e.title}${p.e.location?' · '+p.e.location:''}`}>
-            {p.e.link?<a href={p.e.link} target="_blank" rel="noopener noreferrer"><b>{p.e.title}</b><small>{hhmm(new Date(p.s))}–{hhmm(new Date(p.en))}{p.e.location?' · '+p.e.location:''}</small></a>:<span><b>{p.e.title}</b><small>{hhmm(new Date(p.s))}{p.e.calendar?' · '+p.e.calendar:''}</small></span>}
-          </div>)}
+          {placed.map(p=><EventBlock key={p.e.id} p={p}/>)}
           {today?<i className="cal-now" style={{top:(now.getHours()*60+now.getMinutes())/60*HOUR}}/>:null}
         </div>;})}
       </div>
     </div>
   </div>;
+}
+
+function EventBlock({p}:{p:ReturnType<typeof layoutDay>[number]}){
+  const {colorOf,companyOf,open}=useContext(Cal);const c=colorOf(p.e);const co=companyOf(p.e);
+  return <button className="cal-event" style={{top:p.top,height:p.height,left:`calc(${100*p.col/p.cols}% + 2px)`,width:`calc(${100/p.cols}% - 4px)`,...tint(c)}} title={`${eventTime(p.e)} · ${p.e.title}${co?' · '+co:''}${p.e.location?' · '+p.e.location:''}`} onClick={()=>open(p.e)}>
+    <b>{p.e.title}</b><small>{hhmm(new Date(p.s))}–{hhmm(new Date(p.en))}{co?' · '+co:''}{p.e.source==='erp'?' · ERP':''}</small>
+  </button>;
 }
 
 function MonthGrid({from,month,events,now,onDay}:{from:Date;month:number;events:CalendarEvent[];now:Date;onDay:(d:Date)=>void}){
@@ -126,5 +178,10 @@ function MonthGrid({from,month,events,now,onDay}:{from:Date;month:number;events:
 
 function ListView({from,events,now}:{from:Date;events:CalendarEvent[];now:Date}){
   const days=Array.from({length:8},(_,i)=>addDays(from,i)).map(d=>({d,key:localDay(d),list:events.filter(e=>eventDays(e).includes(localDay(d)))})).filter((x,i)=>i===0||x.list.length);
-  return <div className="agenda-days">{days.map(({d,key,list})=><div className="agenda-day" key={key}><h3>{sameDay(d,now)?'Hoje':d.toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'short'})}</h3>{list.length?list.map(e=><EventRow key={e.id+key} e={e}/>):<p className="agenda-empty">Nada na agenda.</p>}</div>)}</div>;
+  return <div className="agenda-days">{days.map(({d,key,list})=><div className="agenda-day" key={key}><h3>{sameDay(d,now)?'Hoje':d.toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'short'})}</h3>{list.length?list.map(e=><ListRow key={e.id+key} e={e}/>):<p className="agenda-empty">Nada na agenda.</p>}</div>)}</div>;
+}
+
+function ListRow({e}:{e:CalendarEvent}){
+  const {colorOf,companyOf,open}=useContext(Cal);const c=colorOf(e);
+  return <button className="cal-list-row" style={{borderLeftColor:c}} onClick={()=>open(e)}><span className="agenda-time">{eventTime(e)}</span><span className="cal-list-main"><b>{e.title}</b><small>{companyOf(e)??'Sem empresa'}{e.source==='erp'?' · ERP Integral':' · Google'}{e.location?' · '+e.location:''}</small></span></button>;
 }

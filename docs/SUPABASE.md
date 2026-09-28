@@ -51,3 +51,6 @@ O none auditoria (antes um app separado, none-auditoria-confeitaria) virou a aba
 
 ## Base de conhecimento · MBA FGV (set/2026)
 O material do MBA (OneDrive/Pós Graduação FGV, 149 arquivos) foi extraído localmente com `scripts/kb-extract.mjs` e carregado em `none_os.conhecimento` (3.672 trechos, busca em português, RLS sem políticas). O papel `none_app` só executa `conhecimento_buscar(consulta, limite)` e `conhecimento_status()`; a função de carga foi removida após o uso. O agente Executivo usa a base na entrega "Nova consultoria" (vários temas + achados das auditorias) e, de forma focada, nas demais entregas do Executivo e do Financeiro.
+
+## Cores e empresa dos eventos (set/2026)
+A chave `eventos` (none-event-links-v1) guarda a empresa de cada evento da agenda (Google ou ERP), por ocorrência ou série recorrente: escolhida pelo sócio ou reconhecida pela IA (/api/agenda/classificar, que recebe só título, local, agenda e horário). A escolha do sócio nunca é sobrescrita pela IA. A cor vem da empresa (cadastro) ou, para "Pessoal", de `personalColor` no documento de checklists.
