@@ -3,19 +3,23 @@ import {useEffect,useMemo,useState} from 'react';
 import {useOrganizations,organizationContext} from '@/lib/organizations';
 import {checklistIcons,checklistIcon,companyPalette} from '@/lib/brand';
 import {PERSONAL,useEntities} from '@/lib/colors';
-import {Plus,Sparkles,Pencil,Archive,CalendarPlus,ChevronLeft,ChevronRight,CheckSquare,Search,ArchiveRestore,Check} from 'lucide-react';
+import {Plus,Sparkles,Pencil,Archive,CalendarPlus,ChevronLeft,ChevronRight,CheckSquare,Search,ArchiveRestore,Check,Repeat} from 'lucide-react';
 import {useGoogleEvents} from '@/components/google-agenda';
 import {NewEventDialog,type EventPreset} from '@/components/new-event';
 
 // Recurring checklist per company or "Pessoal" (weekly or monthly). Completion is stored per period key.
 // Data shape and storage key (none-checklists-v1) are unchanged; the list is built for dozens of items.
-type Item={id:string;company:string;title:string;frequency:'weekly'|'monthly';completed:string[];archived:boolean;icon?:string};
+// Weekly items belong to the week they were created in (period) unless repeat is on. Items saved before
+// this option existed have no repeat flag and keep repeating every week; monthly items always repeat.
+type Item={id:string;company:string;title:string;frequency:'weekly'|'monthly';completed:string[];archived:boolean;icon?:string;repeat?:boolean;period?:string};
 const key='none-checklists-v1';
 type AiState='checking'|'conectado'|'nao_configurado'|'erro';
 type Status='todos'|'pendentes'|'concluidos';
 function localDate(d:Date){return [d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-');}
 export function periodKey(date:Date,frequency:'weekly'|'monthly'){if(frequency==='monthly')return localDate(date).slice(0,7);const monday=new Date(date.getFullYear(),date.getMonth(),date.getDate());monday.setDate(monday.getDate()-(monday.getDay()+6)%7);return localDate(monday);}
-const validItem=(i:Item)=>i&&typeof i.id==='string'&&typeof i.company==='string'&&typeof i.title==='string'&&['weekly','monthly'].includes(i.frequency)&&Array.isArray(i.completed)&&i.completed.every(x=>typeof x==='string')&&typeof i.archived==='boolean'&&(i.icon===undefined||typeof i.icon==='string');
+const validItem=(i:Item)=>i&&typeof i.id==='string'&&typeof i.company==='string'&&typeof i.title==='string'&&['weekly','monthly'].includes(i.frequency)&&Array.isArray(i.completed)&&i.completed.every(x=>typeof x==='string')&&typeof i.archived==='boolean'&&(i.icon===undefined||typeof i.icon==='string')&&(i.repeat===undefined||typeof i.repeat==='boolean')&&(i.period===undefined||typeof i.period==='string');
+export const repeats=(i:Item)=>i.frequency==='monthly'||i.repeat!==false;
+export const inPeriod=(i:Item,cycle:string)=>repeats(i)||i.period===cycle;
 
 export function CompanyChecklists(){
  const orgs=useOrganizations();const ents=useEntities();
@@ -24,7 +28,7 @@ export function CompanyChecklists(){
  const [company,setCompany]=useState('all');const [frequency,setFrequency]=useState<'weekly'|'monthly'>('weekly');
  const [anchor,setAnchor]=useState(()=>new Date());
  const [status,setStatus]=useState<Status>('todos');const [query,setQuery]=useState('');
- const [title,setTitle]=useState('');const [icon,setIcon]=useState('check');const [target,setTarget]=useState('');const [edit,setEdit]=useState<string|null>(null);const [adding,setAdding]=useState(false);
+ const [title,setTitle]=useState('');const [icon,setIcon]=useState('check');const [repeat,setRepeat]=useState(false);const [target,setTarget]=useState('');const [edit,setEdit]=useState<string|null>(null);const [adding,setAdding]=useState(false);
  const [help,setHelp]=useState(false);const [showArchive,setShowArchive]=useState(false);
  const [ai,setAi]=useState<AiState>('checking');const [apoio,setApoio]=useState<{key:string;state:'idle'|'loading'|'ok'|'error';text:string}>({key:'',state:'idle',text:''});
  const [preset,setPreset]=useState<EventPreset|null>(null);
@@ -39,16 +43,17 @@ export function CompanyChecklists(){
  const cycleLabel=frequency==='weekly'?'Semana de '+new Date(cycle+'T12:00:00').toLocaleDateString('pt-BR',{day:'numeric',month:'short'}):anchor.toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
  const isCurrent=cycle===periodKey(new Date(),frequency);
  function move(n:number){setAnchor(a=>frequency==='weekly'?new Date(a.getFullYear(),a.getMonth(),a.getDate()+7*n):new Date(a.getFullYear(),a.getMonth()+n,1));}
- const scoped=items.filter(i=>(all||i.company===company)&&i.frequency===frequency&&i.archived===showArchive);
+ const scoped=items.filter(i=>(all||i.company===company)&&i.frequency===frequency&&i.archived===showArchive&&(showArchive||inPeriod(i,cycle)));
  const doneOf=(i:Item)=>i.completed.includes(cycle);
  const q=query.trim().toLocaleLowerCase('pt-BR');
  const visible=scoped.filter(i=>(!q||i.title.toLocaleLowerCase('pt-BR').includes(q)||(orgOf(i.company)?.name??'').toLocaleLowerCase('pt-BR').includes(q))&&(status==='todos'||(status==='concluidos')===doneOf(i)));
  const groups=useMemo(()=>{const order=[PERSONAL,...orgs.items.map(o=>o.id)];const by=new Map<string,Item[]>();for(const i of visible){if(!by.has(i.company))by.set(i.company,[]);by.get(i.company)!.push(i);}
   return [...by.entries()].sort((a,b)=>(order.indexOf(a[0])+1||99)-(order.indexOf(b[0])+1||99)).map(([id,list])=>({id,list:[...list].sort((a,b)=>Number(doneOf(a))-Number(doneOf(b)))}));},[visible,orgs.items,cycle]); // eslint-disable-line react-hooks/exhaustive-deps
  const done=scoped.filter(doneOf).length;const pct=scoped.length?Math.round(100*done/scoped.length):0;
- function reset(){setTitle('');setIcon('check');setEdit(null);setAdding(false);}
- function open(item?:Item){setAdding(true);setEdit(item?.id??null);setTitle(item?.title??'');setIcon(item?.icon??'check');setTarget(item?.company??(all?orgs.items[0]?.id??'':company));}
- function add(e:React.FormEvent){e.preventDefault();const owner=all||edit?target:company;if(!title.trim()||!ready||!orgOf(owner))return;const next=edit?items.map(i=>i.id===edit?{...i,title:title.trim(),icon,company:owner}:i):[...items,{id:crypto.randomUUID(),company:owner,title:title.trim(),frequency,completed:[],archived:false,icon}];if(commit(next))reset();}
+ function reset(){setTitle('');setIcon('check');setRepeat(false);setEdit(null);setAdding(false);}
+ function open(item?:Item){setAdding(true);setEdit(item?.id??null);setTitle(item?.title??'');setIcon(item?.icon??'check');setRepeat(item?repeats(item):false);setTarget(item?.company??(all?orgs.items[0]?.id??'':company));}
+ function add(e:React.FormEvent){e.preventDefault();const owner=all||edit?target:company;if(!title.trim()||!ready||!orgOf(owner))return;const weekly=frequency==='weekly';const next=edit?items.map(i=>i.id===edit?{...i,title:title.trim(),icon,company:owner,...(i.frequency==='weekly'?{repeat,period:i.period??cycle}:{})}:i):[...items,{id:crypto.randomUUID(),company:owner,title:title.trim(),frequency,completed:[],archived:false,icon,...(weekly?{repeat,period:cycle}:{})}];if(commit(next))reset();}
+ const toggleRepeat=(i:Item)=>commit(items.map(x=>x.id===i.id?{...x,repeat:!repeats(x),period:x.period??cycle}:x),repeats(i)?'O item agora vale só para esta semana.':'O item agora se repete toda semana.');
  const toggle=(i:Item,checked:boolean)=>commit(items.map(x=>x.id===i.id?{...x,completed:checked?[...x.completed.filter(c=>c!==cycle),cycle]:x.completed.filter(c=>c!==cycle)}:x));
  const pickColor=ents.colorOf(all||edit?target:company);
  const itemLabel=(i:Item)=>(all?(orgOf(i.company)?.name??'Empresa removida')+' · ':'')+i.title;
@@ -73,17 +78,18 @@ export function CompanyChecklists(){
   {!showArchive?<div className="ckl-progress"><div className="audit-progress"><i style={{width:pct+'%'}}/></div><span><b>{done}</b> de {scoped.length} concluídos · {pct}%</span></div>:<p className="ckl-archived-note">Itens arquivados. Restaure para voltar ao checklist.</p>}
   {adding&&<form className="check-add check-add-rich" onSubmit={add}><div className="check-add-row">{(all||edit)&&<select aria-label="Empresa do item" value={target} onChange={e=>setTarget(e.target.value)}>{ents.entities.map(o=><option key={o.id} value={o.id}>{o.name}</option>)}</select>}<label className="sr-only" htmlFor="check-title">Pendência do checklist</label><input autoFocus id="check-title" value={title} maxLength={240} onChange={e=>setTitle(e.target.value)} placeholder="O que precisa ser feito?" required/></div>
    <fieldset className="icon-picker" style={{'--pick':pickColor} as React.CSSProperties}><legend>Ícone</legend><div className="icon-grid">{checklistIcons.map(({key:k,label,Icon})=><button type="button" key={k} aria-label={label} title={label} aria-pressed={icon===k} onClick={()=>setIcon(k)}><Icon size={18}/></button>)}</div></fieldset>
+   {frequency==='weekly'?<label className="ckl-repeat" style={{'--pick':pickColor} as React.CSSProperties}><input type="checkbox" checked={repeat} onChange={e=>setRepeat(e.target.checked)}/><Repeat size={14}/>Repetir semanalmente<small>{repeat?'Aparece em todas as semanas.':'Vale só para '+cycleLabel.toLocaleLowerCase('pt-BR')+'.'}</small></label>:null}
    <div className="check-add-actions"><button className="primary" disabled={!ready||!orgs.ready||!title.trim()}>{edit?'Salvar':'Adicionar'}</button><button type="button" className="text-button" onClick={reset}>Cancelar</button></div></form>}
   {groups.length?<div className="ckl-groups">{groups.map(({id,list})=>{const org=orgOf(id);const color=org?.color??'#8a968d';const total=scoped.filter(i=>i.company===id);const d=total.filter(doneOf).length;return <div className="ckl-group" key={id} style={{'--c':color} as React.CSSProperties}>
     <div className="ckl-group-head"><button className="ckl-dot" aria-label={'Cor de '+(org?.name??'empresa')} title="Mudar cor" aria-expanded={colorFor===id} disabled={!org} onClick={()=>setColorFor(colorFor===id?null:id)}/><b>{org?.name??'Empresa removida'}</b><small>{d}/{total.length}</small></div>
     {colorFor===id&&org?<div className="ckl-palette" role="group" aria-label={'Cores para '+org.name}>{companyPalette.map(c=><button key={c.hex} style={{background:c.hex}} aria-label={c.label} title={c.label} aria-pressed={org.color===c.hex} onClick={()=>{ents.setColor(id,c.hex);setColorFor(null);setNotice('Cor de '+org.name+' atualizada em todo o none OS.');}}>{org.color===c.hex?<Check size={13}/>:null}</button>)}</div>:null}
     <ul>{list.map(i=>{const Icon=checklistIcon(i.icon);const isDone=doneOf(i);return <li key={i.id} className={isDone?'is-done':''}>
-      <label><input type="checkbox" disabled={!ready||showArchive} checked={isDone} onChange={e=>toggle(i,e.target.checked)}/><Icon size={15} className="ckl-icon"/><span>{i.title}</span></label>
-      <div className="ckl-tools">{!showArchive&&gcal.state!=='nao_configurado'?<button className="icon-button" aria-label={'Agendar '+i.title} title="Agendar" onClick={()=>setPreset({title:i.title,allDay:true,date:localDate(new Date()),company:i.company})}><CalendarPlus size={14}/></button>:null}<button className="icon-button" aria-label={'Editar '+i.title} title="Editar" onClick={()=>open(i)}><Pencil size={14}/></button><button className="icon-button" aria-label={(showArchive?'Restaurar ':'Arquivar ')+i.title} title={showArchive?'Restaurar':'Arquivar'} onClick={()=>commit(items.map(x=>x.id===i.id?{...x,archived:!x.archived}:x),showArchive?'Item restaurado.':'Item arquivado.')}>{showArchive?<ArchiveRestore size={14}/>:<Archive size={14}/>}</button></div>
+      <label><input type="checkbox" disabled={!ready||showArchive} checked={isDone} onChange={e=>toggle(i,e.target.checked)}/><Icon size={15} className="ckl-icon"/><span>{i.title}</span>{i.frequency==='weekly'&&repeats(i)?<Repeat size={12} className="ckl-repeat-mark" aria-label="Repete toda semana"/>:null}</label>
+      <div className="ckl-tools">{!showArchive&&i.frequency==='weekly'?<button className="icon-button" aria-pressed={repeats(i)} aria-label={(repeats(i)?'Parar de repetir ':'Repetir semanalmente ')+i.title} title={repeats(i)?'Repete toda semana. Clique para deixar só nesta semana':'Repetir semanalmente'} onClick={()=>toggleRepeat(i)}><Repeat size={14}/></button>:null}{!showArchive&&gcal.state!=='nao_configurado'?<button className="icon-button" aria-label={'Agendar '+i.title} title="Agendar" onClick={()=>setPreset({title:i.title,allDay:true,date:localDate(new Date()),company:i.company})}><CalendarPlus size={14}/></button>:null}<button className="icon-button" aria-label={'Editar '+i.title} title="Editar" onClick={()=>open(i)}><Pencil size={14}/></button><button className="icon-button" aria-label={(showArchive?'Restaurar ':'Arquivar ')+i.title} title={showArchive?'Restaurar':'Arquivar'} onClick={()=>commit(items.map(x=>x.id===i.id?{...x,archived:!x.archived}:x),showArchive?'Item restaurado.':'Item arquivado.')}>{showArchive?<ArchiveRestore size={14}/>:<Archive size={14}/>}</button></div>
     </li>;})}</ul>
    </div>;})}</div>
-  :<div className="check-empty"><CheckSquare size={26}/><p>{scoped.length?'Nenhum item neste filtro.':showArchive?'Nenhum item arquivado.':'Seu checklist começa com um próximo passo.'}</p><small>{scoped.length?'Mude a busca ou a situação.':all?'Use “Novo item” e escolha a empresa de cada um.':'Adicione os itens que se repetem nesta empresa.'}</small></div>}
-  <div className="check-bottom"><button className="text-button" onClick={()=>setShowArchive(!showArchive)}>{showArchive?'Ver ativos':'Arquivados'}</button><span>{frequency==='weekly'?'Itens semanais':'Itens mensais'} · conclusão registrada por período · salvo automaticamente</span></div>
+  :<div className="check-empty"><CheckSquare size={26}/><p>{scoped.length?'Nenhum item neste filtro.':showArchive?'Nenhum item arquivado.':'Seu checklist começa com um próximo passo.'}</p><small>{scoped.length?'Mude a busca ou a situação.':all?'Use “Novo item” e escolha a empresa de cada um.':frequency==='weekly'?'Os itens valem só para esta semana, a menos que você marque “Repetir semanalmente”.':'Adicione os itens que se repetem nesta empresa.'}</small></div>}
+  <div className="check-bottom"><button className="text-button" onClick={()=>setShowArchive(!showArchive)}>{showArchive?'Ver ativos':'Arquivados'}</button><span>{frequency==='weekly'?'Itens desta semana e os que se repetem':'Itens mensais'} · conclusão registrada por período · salvo automaticamente</span></div>
   {help&&<aside className="check-help" aria-busy={apoio.state==='loading'}><h3>Apoio da none</h3>{ai==='nao_configurado'?<><p>IA não conectada. Estas são as pendências do período para você priorizar:</p><pre>{pendingTitles.map(t=>'☐ '+t).join('\n')||'Nenhuma pendência neste período.'}</pre></>:<><p>A none prioriza as pendências de {cycleLabel.toLocaleLowerCase('pt-BR')} usando apenas este checklist e o cadastro {all?'das empresas':'da empresa'}.</p><div className="check-help-actions"><button className="primary" disabled={apoio.state==='loading'||!orgs.ready||!scoped.length||showArchive} onClick={prioritize}><Sparkles size={15}/>{apoio.state==='loading'?'Priorizando…':apoioFresh&&apoio.state==='ok'?'Priorizar de novo':'Priorizar pendências'}</button><small>{pendingTitles.length} pendentes · {doneTitles.length} concluídos{ai==='erro'?' · conexão com a IA não confirmada':''}</small></div>{showArchive&&<p>Volte aos itens ativos para priorizar.</p>}{apoioFresh&&apoio.state==='error'&&<p className="check-help-error" role="alert">{apoio.text}</p>}{apoioFresh&&apoio.state==='ok'&&<div className="check-help-answer" role="status">{apoio.text}</div>}</>}</aside>}
   <p role="status" className="check-hint">{notice}</p>
   {preset?<NewEventDialog google={gcal.state} preset={preset} onClose={()=>setPreset(null)} onCreated={()=>setNotice('Evento criado. Ele aparece na agenda abaixo.')}/>:null}

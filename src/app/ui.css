@@ -452,6 +452,9 @@
 .ckl-tools{display:flex;gap:0;opacity:0;transition:opacity .15s}
 .ckl-group li:hover .ckl-tools,.ckl-group li:focus-within .ckl-tools{opacity:1}
 .ckl-tools .icon-button{width:30px;height:30px;color:#8c998f}
+.ckl-tools .icon-button[aria-pressed=true]{color:var(--c)}
+.ckl-repeat-mark{flex:none;color:var(--c);opacity:.75}
+.ckl-repeat{display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-size:13px;color:var(--ink,inherit);cursor:pointer}.ckl-repeat input{width:16px;height:16px;accent-color:var(--pick)}.ckl-repeat small{flex-basis:100%;color:var(--muted);font-size:12px;padding-left:24px}
 @media(pointer:coarse){.ckl-tools{opacity:1}.ckl-tools .icon-button{min-width:36px;min-height:36px;width:36px;height:36px}}
 @media(max-width:700px){
   .checklist-v2{padding:16px}
